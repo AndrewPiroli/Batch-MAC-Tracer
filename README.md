@@ -9,7 +9,7 @@ A WIP MAC address tracer.
 
 ## Known Usability Issues
 
-* Only works with cisco devices (device type hardcoded to "cisco_ios" and uses `show mac address table {mac}`, `show cdp neighbors detail`, and `show etherchannel summary`)
+* Only works with Cisco IOS/IOS-XE devices (device type hardcoded to "cisco_ios" and uses `show mac address table {mac}`, `show cdp neighbors detail`, and `show etherchannel summary`)
 
 * Assumes password and enable secret are the same
 
