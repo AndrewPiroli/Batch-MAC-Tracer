@@ -13,4 +13,4 @@ A WIP MAC address tracer.
 
 * Assumes password and enable secret are the same
 
-* Assumes login directly to enable/priveleged exec
+* Assumes login directly to enable/privileged exec
