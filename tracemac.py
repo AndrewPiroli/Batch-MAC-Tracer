@@ -188,16 +188,15 @@ if __name__ == "__main__":
     )
     operating_mode.add_argument("--one-shot", help="Trace a single MAC.")
     args = parser.parse_args()
-    connection_details: Dict[str, str] = {
-        "device_type": "cisco_ios",
-        "host": args.root_node,
-        "username": args.username,
-    }
     if args.insecure_password:
         with open(args.insecure_password, "r") as insecure:
             password = insecure.readline().strip()
     else:
         password = getpass("Enter password for login: ")
+    connection_details: Dict[str, str] = {
+        "device_type": "cisco_ios",
+        "username": args.username,
+    }
     connection_details.update({"password": password, "secret": password})
     start_time = time.perf_counter()
     interactive(connection_details, args.root_node, args.inventory, args.one_shot)
