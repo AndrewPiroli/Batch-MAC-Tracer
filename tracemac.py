@@ -71,8 +71,7 @@ class TraceUtils:
         return f"{mac[:4]}.{mac[4:8]}.{mac[8:12]}"
 
 
-def trace_macs(connection_details: Dict[str, str], host: str, mac_list: str):
-    connection_details.update({"host": host})
+def trace_macs(connection_details: Dict[str, str], mac_list: str):
     result = []
     with ConnectHandler(**connection_details) as conn:
         switch_hostname = conn.find_prompt()[:-1]
@@ -146,7 +145,7 @@ def interactive(
             status = None
             interface = None
             for status, mac, interface, current_node in trace_macs(
-                connection_details.copy(), current_node, mac_list
+                dict({"host": current_node}, **connection_details), mac_list
             ):
                 if status == "edge":
                     print(
