@@ -139,7 +139,7 @@ def interactive(
     else:
         initial_node_to_mac = {
             starting_node: [
-                oneshot_mac,
+                TraceUtils.fmac_cisco(oneshot_mac.strip()),
             ]
         }
     next_node_to_mac = {}
