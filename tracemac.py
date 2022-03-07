@@ -77,6 +77,10 @@ def trace_macs(connection_details: Dict[str, str], mac_list: str):
         switch_hostname = conn.find_prompt()[:-1]
         mac_to_local_iface = {}
         for mac in mac_list:
+            # It is not intelligent to ask the switch for a partial mac table many times
+            # A better solution would be to ask the switch for it's entire mac table once
+            # But textfsm had some problems with that last I checked
+            # Parsing the mac table ourselves is a TODO for sure.
             mac_table = conn.send_command(
                 f"sh mac address-table address {mac}", use_textfsm=True
             )
