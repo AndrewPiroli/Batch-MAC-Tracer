@@ -4,7 +4,7 @@ import argparse
 import time
 from getpass import getpass
 from netmiko import ConnectHandler
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 class TraceUtils:
@@ -71,7 +71,7 @@ class TraceUtils:
         return f"{mac[:4]}.{mac[4:8]}.{mac[8:12]}"
 
 
-def trace_macs(connection_details: Dict[str, str], mac_list: str):
+def trace_macs(connection_details: Dict[str, str], mac_list: List[str]):
     result = []
     with ConnectHandler(**connection_details) as conn:
         switch_hostname = conn.find_prompt()[:-1]
