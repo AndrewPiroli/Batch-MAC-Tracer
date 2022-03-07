@@ -174,13 +174,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Bulk trace MAC addresses through a L2 network of Cisco switches"
     )
-    parser.add_argument("--username", help="User to login to network devices")
+    parser.add_argument(
+        "--username", help="User to login to network devices", required=True
+    )
+    parser.add_argument(
+        "--root-node", help="Specify node to start tracing from.", required=True
+    )
     parser.add_argument(
         "--insecure-password",
         help="Insecurely load password from the command line. Do not use.",
         action="store_true",
     )
-    parser.add_argument("--root-node", help="Specify node to start tracing from.")
     operating_mode = parser.add_mutually_exclusive_group(required=True)
     operating_mode.add_argument(
         "--inventory", help="File containing MAC addresses to trace, one per line."
