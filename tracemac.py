@@ -4,12 +4,14 @@ import argparse
 import time
 from getpass import getpass
 from netmiko import ConnectHandler
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 
 class TraceUtils:
     @staticmethod
-    def handle_portchan(device_connection_handle: Any, chan_id: str) -> str:
+    def handle_portchan(
+        device_connection_handle: Any, chan_id: str
+    ) -> Union[None, str]:
         """
         Given a port channel and a netmiko connection reference, find the first link in the port channel.
         """
@@ -25,7 +27,7 @@ class TraceUtils:
         return None
 
     @staticmethod
-    def shrink_portname(portname: str) -> str:
+    def shrink_portname(portname: str) -> Union[None, str]:
         """
         Abbreviate a port prefix.
         FastEthernet -> Fa
@@ -42,7 +44,7 @@ class TraceUtils:
         )
 
     @staticmethod
-    def expand_portname(portname: str) -> str:
+    def expand_portname(portname: str) -> Union[None, str]:
         """
         Given a port name with a abbreviated prefix, expand the prefix.
         Fa -> FastEthernet
@@ -60,7 +62,7 @@ class TraceUtils:
         return portname
 
     @staticmethod
-    def fmac_cisco(mac: str) -> str:
+    def fmac_cisco(mac: str) -> Union[None, str]:
         """
         Given a string representation of a MAC address in a common format, return it in Cisco format.
         """
@@ -119,7 +121,7 @@ def interactive(
     if not inventory_path and not oneshot_mac:
         raise ValueError("No inventory or oneshot mac supplied")
     current_node = starting_node
-    initial_node_to_mac = {}
+    initial_node_to_mac: Dict[str, List[str]] = {}
     if inventory_path:
         with open(inventory_path) as mac_f:
             for mac in mac_f:
@@ -142,7 +144,7 @@ def interactive(
                 TraceUtils.fmac_cisco(oneshot_mac.strip()),
             ]
         }
-    next_node_to_mac = {}
+    next_node_to_mac: Dict[str, List[str]] = {}
     print("result,mac,switch,interface")
     while len(initial_node_to_mac) != 0:
         for current_node, mac_list in initial_node_to_mac.items():
