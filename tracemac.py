@@ -90,6 +90,8 @@ def trace_macs(connection_details: Dict[str, str], mac_list: List[str]):
                 result.append(["err", mac, "Unknown", switch_hostname])
                 break
             iface = TraceUtils.expand_portname(mac_table[0]["destination_port".strip()])
+            if not iface:
+                continue
             if "Port-channel" in iface:
                 iface = TraceUtils.handle_portchan(conn, iface)
             mac_to_local_iface.update({mac: iface})
@@ -125,25 +127,27 @@ def interactive(
     if inventory_path:
         with open(inventory_path) as mac_f:
             for mac in mac_f:
-                # FIXME: both of these cases silently swallow fmac_cisco() -> None
+                formatted_mac = TraceUtils.fmac_cisco(mac.strip())
+                if not formatted_mac:
+                    continue
                 if current_node in initial_node_to_mac:
-                    initial_node_to_mac[current_node].append(
-                        TraceUtils.fmac_cisco(mac.strip())
-                    )
+                    initial_node_to_mac[current_node].append(formatted_mac)
                 else:
                     initial_node_to_mac.update(
                         {
                             current_node: [
-                                TraceUtils.fmac_cisco(mac.strip()),
+                                formatted_mac,
                             ]
                         }
                     )
     else:
-        initial_node_to_mac = {
-            starting_node: [
-                TraceUtils.fmac_cisco(oneshot_mac.strip()),
-            ]
-        }
+        formatted_oneshot_mac = TraceUtils.fmac_cisco(oneshot_mac.strip())
+        if formatted_oneshot_mac:
+            initial_node_to_mac = {
+                starting_node: [
+                    formatted_oneshot_mac,
+                ]
+            }
     next_node_to_mac: Dict[str, List[str]] = {}
     print("result,mac,switch,interface")
     while len(initial_node_to_mac) != 0:
