@@ -108,7 +108,7 @@ def trace_macs(connection_details: Dict[str, str], mac_list: List[str]):
     return result
 
 
-def interactive(
+def start_mac_trace(
     connection_details: Dict[str, str],
     starting_node: str,
     inventory_path: str,
@@ -206,5 +206,5 @@ if __name__ == "__main__":
     }
     connection_details.update({"password": password, "secret": password})
     start_time = time.perf_counter()
-    interactive(connection_details, args.root_node, args.inventory, args.one_shot)
+    start_mac_trace(connection_details, args.root_node, args.inventory, args.one_shot)
     print(f"Elapsed: {time.perf_counter() - start_time}")
