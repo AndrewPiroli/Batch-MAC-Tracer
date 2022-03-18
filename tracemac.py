@@ -4,6 +4,7 @@ import argparse
 import time
 from getpass import getpass
 from netmiko import ConnectHandler
+from pathlib import Path
 from typing import Any, Dict, List, Union
 
 
@@ -110,15 +111,28 @@ def trace_macs(connection_details: Dict[str, str], mac_list: List[str]):
 
 def start_mac_trace(
     connection_details: Dict[str, str],
-    starting_node: str,
-    inventory_path: str,
+    inventory_path: Union[Path, str],
     oneshot_mac: str,
 ):
+    """
+    Start the mac tracing.
+
+    connection_details (dict): for netmiko connenctions
+        host (str): the device to start tracing from.
+        device_type (str): a device type supported by netmiko and this program - currently cisco_ios is the only supported
+        username (str): username to login to each device
+        password (str): password to login to each device
+        secret (str): secret to enable to each device, if required.
+    inventory_path (pathlib.Path | str): path to a text file with one MAC address per line (most common formats accepted). Mutually exclusive with oneshot_mac
+    oneshot_mac (str): a single MAC address to find. Mutually exclusive with inventory_path
+
+    Prints it's output to stdout
+    """
     if inventory_path and oneshot_mac:
         raise NotImplementedError("Both inventory and oneshot specified")
     if not inventory_path and not oneshot_mac:
         raise ValueError("No inventory or oneshot mac supplied")
-    current_node = starting_node
+    current_node = str(connection_details["host"])
     initial_node_to_mac: Dict[str, List[str]] = {}
     if inventory_path:
         with open(inventory_path) as mac_f:
@@ -140,7 +154,7 @@ def start_mac_trace(
         formatted_oneshot_mac = fmac_cisco(oneshot_mac.strip())
         if formatted_oneshot_mac:
             initial_node_to_mac = {
-                starting_node: [
+                str(connection_details["host"]): [
                     formatted_oneshot_mac,
                 ]
             }
@@ -150,8 +164,10 @@ def start_mac_trace(
         for current_node, mac_list in initial_node_to_mac.items():
             status = None
             interface = None
+            next_connection_deetails = connection_details
+            next_connection_deetails.update({"host": current_node})
             for status, mac, interface, current_node in trace_macs(
-                dict({"host": current_node}, **connection_details), mac_list
+                next_connection_deetails, mac_list
             ):
                 if status == "edge":
                     print(f"ok,{mac},{current_node},{shrink_portname(interface)}")
@@ -204,7 +220,9 @@ if __name__ == "__main__":
         "device_type": "cisco_ios",
         "username": args.username,
     }
-    connection_details.update({"password": password, "secret": password})
+    connection_details.update(
+        {"host": args.root_node, "password": password, "secret": password}
+    )
     start_time = time.perf_counter()
-    start_mac_trace(connection_details, args.root_node, args.inventory, args.one_shot)
+    start_mac_trace(connection_details, args.inventory, args.one_shot)
     print(f"Elapsed: {time.perf_counter() - start_time}")
