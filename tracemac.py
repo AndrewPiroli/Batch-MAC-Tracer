@@ -113,7 +113,7 @@ def start_mac_trace(
     connection_details: Dict[str, str],
     inventory_path: Union[Path, str],
     oneshot_mac: str,
-):
+) -> List[str]:
     """
     Start the mac tracing.
 
@@ -126,7 +126,7 @@ def start_mac_trace(
     inventory_path (pathlib.Path | str): path to a text file with one MAC address per line (most common formats accepted). Mutually exclusive with oneshot_mac
     oneshot_mac (str): a single MAC address to find. Mutually exclusive with inventory_path
 
-    Prints it's output to stdout
+    Returns a list of strings, comma delimited, with a header. Suitable to dump directly to CSV
     """
     if inventory_path and oneshot_mac:
         raise NotImplementedError("Both inventory and oneshot specified")
@@ -159,7 +159,8 @@ def start_mac_trace(
                 ]
             }
     next_node_to_mac: Dict[str, List[str]] = {}
-    print("result,mac,switch,interface")
+    results = list()
+    results.append("result,mac,switch,interface")
     while len(initial_node_to_mac) != 0:
         for current_node, mac_list in initial_node_to_mac.items():
             status = None
@@ -170,7 +171,9 @@ def start_mac_trace(
                 next_connection_deetails, mac_list
             ):
                 if status == "edge":
-                    print(f"ok,{mac},{current_node},{shrink_portname(interface)}")
+                    results.append(
+                        f"ok,{mac},{current_node},{shrink_portname(interface)}"
+                    )
                 elif status == "recurse":
                     if current_node in next_node_to_mac:
                         next_node_to_mac[current_node].append(mac)
@@ -183,11 +186,12 @@ def start_mac_trace(
                             }
                         )
                 else:
-                    print(
+                    results.append(
                         f"err-unknown,{mac},{current_node},{shrink_portname(interface)}"
                     )
         initial_node_to_mac = next_node_to_mac
         next_node_to_mac = {}
+    return results
 
 
 if __name__ == "__main__":
@@ -224,5 +228,6 @@ if __name__ == "__main__":
         {"host": args.root_node, "password": password, "secret": password}
     )
     start_time = time.perf_counter()
-    start_mac_trace(connection_details, args.inventory, args.one_shot)
+    for line in start_mac_trace(connection_details, args.inventory, args.one_shot):
+        print(line)
     print(f"Elapsed: {time.perf_counter() - start_time}")
