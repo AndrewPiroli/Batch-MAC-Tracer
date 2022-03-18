@@ -186,7 +186,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--insecure-password",
-        help="Insecurely load password from the command line. Do not use.",
+        help="Insecurely load password from the first line of a text file. Do not use.",
         action="store_true",
     )
     operating_mode = parser.add_mutually_exclusive_group(required=True)
