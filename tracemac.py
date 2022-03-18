@@ -5,10 +5,10 @@ import time
 from getpass import getpass
 from netmiko import ConnectHandler
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 
-def handle_portchan(device_connection_handle: Any, chan_id: str) -> Union[None, str]:
+def handle_portchan(device_connection_handle: Any, chan_id: str) -> Optional[str]:
     """
     Given a port channel and a netmiko connection reference, find the first link in the port channel.
     """
@@ -24,7 +24,7 @@ def handle_portchan(device_connection_handle: Any, chan_id: str) -> Union[None, 
     return None
 
 
-def shrink_portname(portname: str) -> Union[None, str]:
+def shrink_portname(portname: str) -> Optional[str]:
     """
     Abbreviate a port prefix.
     FastEthernet -> Fa
@@ -41,7 +41,7 @@ def shrink_portname(portname: str) -> Union[None, str]:
     )
 
 
-def expand_portname(portname: str) -> Union[None, str]:
+def expand_portname(portname: str) -> Optional[str]:
     """
     Given a port name with a abbreviated prefix, expand the prefix.
     Fa -> FastEthernet
@@ -59,7 +59,7 @@ def expand_portname(portname: str) -> Union[None, str]:
     return portname
 
 
-def fmac_cisco(mac: str) -> Union[None, str]:
+def fmac_cisco(mac: str) -> Optional[str]:
     """
     Given a string representation of a MAC address in a common format, return it in Cisco format.
     """
