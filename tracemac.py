@@ -5,7 +5,7 @@ import time
 from getpass import getpass
 from netmiko import ConnectHandler
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 
 def handle_portchan(device_connection_handle: Any, chan_id: str) -> Optional[str]:
@@ -115,6 +115,7 @@ def start_mac_trace(
     connection_details: Dict[str, str],
     inventory_path: Union[Path, str],
     oneshot_mac: str,
+    progress_callback: Optional[Callable[[str, str, str, str], None]],
 ) -> List[str]:
     """
     Start the mac tracing.
@@ -127,13 +128,21 @@ def start_mac_trace(
         secret (str): secret to enable to each device, if required.
     inventory_path (pathlib.Path | str): path to a text file with one MAC address per line (most common formats accepted). Mutually exclusive with oneshot_mac
     oneshot_mac (str): a single MAC address to find. Mutually exclusive with inventory_path
+    progress_callback (optional callable accepting 4 str arguments): Called every time a trace is finished
+        status: will be "ok" or "err-unknown"
+        mac: the MAC address in question
+        node: the traced node, or if error, last node where the trace stopped
+        interface: the traced interface, or if error, last interface seen
 
-    Returns a list of strings, comma delimited, with a header. Suitable to dump directly to CSV
+    Returns a list of strings, comma delimited. Suitable to dump directly to CSV
     """
     if inventory_path and oneshot_mac:
         raise NotImplementedError("Both inventory and oneshot specified")
     if not inventory_path and not oneshot_mac:
         raise ValueError("No inventory or oneshot mac supplied")
+    if not callable(progress_callback):
+        # No callback, assign a lambda that will swallow anything.
+        progress_callback: Callable[[str, str, str, str], None] = lambda *args: None
     current_node = str(connection_details["host"])
     initial_node_to_mac: Dict[str, List[str]] = {}
     if inventory_path:
@@ -162,7 +171,6 @@ def start_mac_trace(
             }
     next_node_to_mac: Dict[str, List[str]] = {}
     results = list()
-    results.append("result,mac,switch,interface")
     while len(initial_node_to_mac) != 0:
         for current_node, mac_list in initial_node_to_mac.items():
             status = None
@@ -173,9 +181,9 @@ def start_mac_trace(
                 next_connection_deetails, mac_list
             ):
                 if status == "edge":
-                    results.append(
-                        f"ok,{mac},{current_node},{shrink_portname(interface)}"
-                    )
+                    result_interface = shrink_portname(interface)
+                    progress_callback("ok", mac, current_node, result_interface)
+                    results.append(f"ok,{mac},{current_node},{result_interface}")
                 elif status == "recurse":
                     if current_node in next_node_to_mac:
                         next_node_to_mac[current_node].append(mac)
@@ -188,8 +196,12 @@ def start_mac_trace(
                             }
                         )
                 else:
+                    result_interface = shrink_portname(interface)
+                    progress_callback(
+                        "err-unknown", mac, current_node, result_interface
+                    )
                     results.append(
-                        f"err-unknown,{mac},{current_node},{shrink_portname(interface)}"
+                        f"err-unknown,{mac},{current_node},{result_interface}"
                     )
         initial_node_to_mac = next_node_to_mac
         next_node_to_mac = {}
@@ -229,7 +241,12 @@ if __name__ == "__main__":
     connection_details.update(
         {"host": args.root_node, "password": password, "secret": password}
     )
+    interactive_callback = lambda status, mac, node, interface: print(
+        f"{status},{mac},{node},{interface}"
+    )
+    print("result,mac,switch,interface")
     start_time = time.perf_counter()
-    for line in start_mac_trace(connection_details, args.inventory, args.one_shot):
-        print(line)
+    start_mac_trace(
+        connection_details, args.inventory, args.one_shot, interactive_callback
+    )
     print(f"Elapsed: {time.perf_counter() - start_time}")
