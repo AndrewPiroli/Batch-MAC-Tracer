@@ -7,70 +7,66 @@ from netmiko import ConnectHandler
 from typing import Any, Dict, List, Union
 
 
-class TraceUtils:
-    @staticmethod
-    def handle_portchan(
-        device_connection_handle: Any, chan_id: str
-    ) -> Union[None, str]:
-        """
-        Given a port channel and a netmiko connection reference, find the first link in the port channel.
-        """
-        if "Po" in chan_id:
-            chan_id = "".join([char for char in chan_id if char.isnumeric()])
-        all_chans = device_connection_handle.send_command(
-            "show etherchannel summary", use_textfsm=True
-        )
-        if isinstance(all_chans, list):
-            for chan in all_chans:
-                if chan["group"] == chan_id:
-                    return TraceUtils.expand_portname(chan["interfaces"][0])
+def handle_portchan(device_connection_handle: Any, chan_id: str) -> Union[None, str]:
+    """
+    Given a port channel and a netmiko connection reference, find the first link in the port channel.
+    """
+    if "Po" in chan_id:
+        chan_id = "".join([char for char in chan_id if char.isnumeric()])
+    all_chans = device_connection_handle.send_command(
+        "show etherchannel summary", use_textfsm=True
+    )
+    if isinstance(all_chans, list):
+        for chan in all_chans:
+            if chan["group"] == chan_id:
+                return expand_portname(chan["interfaces"][0])
+    return None
+
+
+def shrink_portname(portname: str) -> Union[None, str]:
+    """
+    Abbreviate a port prefix.
+    FastEthernet -> Fa
+    GigabitEthernet -> Gi
+    TenGigabitEthernet -> Te
+    """
+    if not portname:
         return None
+    return (
+        portname.replace("Ethernet", "", 1)
+        .replace("Fast", "Fa", 1)
+        .replace("Gigabit", "Gi", 1)
+        .replace("TenGigabit", "Te", 1)
+    )
 
-    @staticmethod
-    def shrink_portname(portname: str) -> Union[None, str]:
-        """
-        Abbreviate a port prefix.
-        FastEthernet -> Fa
-        GigabitEthernet -> Gi
-        TenGigabitEthernet -> Te
-        """
-        if not portname:
-            return None
-        return (
-            portname.replace("Ethernet", "", 1)
-            .replace("Fast", "Fa", 1)
-            .replace("Gigabit", "Gi", 1)
-            .replace("TenGigabit", "Te", 1)
-        )
 
-    @staticmethod
-    def expand_portname(portname: str) -> Union[None, str]:
-        """
-        Given a port name with a abbreviated prefix, expand the prefix.
-        Fa -> FastEthernet
-        Gi -> GigabitEthernet
-        Te -> TenGigabitEthernet
-        """
-        if not portname:
-            return None
-        if portname.startswith("Fa") and not portname.startswith("FastEthernet"):
-            return f"FastEthernet{portname[2:]}"
-        if portname.startswith("Gi") and not portname.startswith("GigabitEthernet"):
-            return f"GigabitEthernet{portname[2:]}"
-        if portname.startswith("Te") and not portname.startswith("TenGigabitEthernet"):
-            return f"TenGigabitEthernet{portname[2:]}"
-        return portname
+def expand_portname(portname: str) -> Union[None, str]:
+    """
+    Given a port name with a abbreviated prefix, expand the prefix.
+    Fa -> FastEthernet
+    Gi -> GigabitEthernet
+    Te -> TenGigabitEthernet
+    """
+    if not portname:
+        return None
+    if portname.startswith("Fa") and not portname.startswith("FastEthernet"):
+        return f"FastEthernet{portname[2:]}"
+    if portname.startswith("Gi") and not portname.startswith("GigabitEthernet"):
+        return f"GigabitEthernet{portname[2:]}"
+    if portname.startswith("Te") and not portname.startswith("TenGigabitEthernet"):
+        return f"TenGigabitEthernet{portname[2:]}"
+    return portname
 
-    @staticmethod
-    def fmac_cisco(mac: str) -> Union[None, str]:
-        """
-        Given a string representation of a MAC address in a common format, return it in Cisco format.
-        """
-        # Fast-like remove ":", ".", and "-" in one go
-        mac = mac.translate({58: None, 45: None, 46: None}).lower()
-        if len(mac) != 12:
-            return None
-        return f"{mac[:4]}.{mac[4:8]}.{mac[8:12]}"
+
+def fmac_cisco(mac: str) -> Union[None, str]:
+    """
+    Given a string representation of a MAC address in a common format, return it in Cisco format.
+    """
+    # Fast-like remove ":", ".", and "-" in one go
+    mac = mac.translate({58: None, 45: None, 46: None}).lower()
+    if len(mac) != 12:
+        return None
+    return f"{mac[:4]}.{mac[4:8]}.{mac[8:12]}"
 
 
 def trace_macs(connection_details: Dict[str, str], mac_list: List[str]):
@@ -89,11 +85,11 @@ def trace_macs(connection_details: Dict[str, str], mac_list: List[str]):
             if not isinstance(mac_table, list):
                 result.append(["err", mac, "Unknown", switch_hostname])
                 break
-            iface = TraceUtils.expand_portname(mac_table[0]["destination_port".strip()])
+            iface = expand_portname(mac_table[0]["destination_port".strip()])
             if not iface:
                 continue
             if "Port-channel" in iface:
-                iface = TraceUtils.handle_portchan(conn, iface)
+                iface = handle_portchan(conn, iface)
             mac_to_local_iface.update({mac: iface})
         full_cdp_table = conn.send_command(f"sh cdp neighbor detail", use_textfsm=True)
     for mac, iface in mac_to_local_iface.items():
@@ -127,7 +123,7 @@ def interactive(
     if inventory_path:
         with open(inventory_path) as mac_f:
             for mac in mac_f:
-                formatted_mac = TraceUtils.fmac_cisco(mac.strip())
+                formatted_mac = fmac_cisco(mac.strip())
                 if not formatted_mac:
                     continue
                 if current_node in initial_node_to_mac:
@@ -141,7 +137,7 @@ def interactive(
                         }
                     )
     else:
-        formatted_oneshot_mac = TraceUtils.fmac_cisco(oneshot_mac.strip())
+        formatted_oneshot_mac = fmac_cisco(oneshot_mac.strip())
         if formatted_oneshot_mac:
             initial_node_to_mac = {
                 starting_node: [
@@ -158,9 +154,7 @@ def interactive(
                 dict({"host": current_node}, **connection_details), mac_list
             ):
                 if status == "edge":
-                    print(
-                        f"ok,{mac},{current_node},{TraceUtils.shrink_portname(interface)}"
-                    )
+                    print(f"ok,{mac},{current_node},{shrink_portname(interface)}")
                 elif status == "recurse":
                     if current_node in next_node_to_mac:
                         next_node_to_mac[current_node].append(mac)
@@ -174,7 +168,7 @@ def interactive(
                         )
                 else:
                     print(
-                        f"err-unknown,{mac},{current_node},{TraceUtils.shrink_portname(interface)}"
+                        f"err-unknown,{mac},{current_node},{shrink_portname(interface)}"
                     )
         initial_node_to_mac = next_node_to_mac
         next_node_to_mac = {}
