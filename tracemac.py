@@ -70,7 +70,9 @@ def fmac_cisco(mac: str) -> Optional[str]:
     return f"{mac[:4]}.{mac[4:8]}.{mac[8:12]}"
 
 
-def trace_macs(connection_details: Dict[str, str], mac_list: List[str]):
+def trace_macs(
+    connection_details: Dict[str, str], mac_list: List[str]
+) -> List[List[str]]:
     result = []
     with ConnectHandler(**connection_details) as conn:
         switch_hostname = conn.find_prompt()[:-1]
