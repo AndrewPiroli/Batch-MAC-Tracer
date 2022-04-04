@@ -2,25 +2,31 @@
 # Andrew Piroli 2022
 import argparse
 import time
+import tracemac_parser
 from getpass import getpass
 from netmiko import ConnectHandler
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
 
-def handle_portchan(device_connection_handle: Any, chan_id: str) -> Optional[str]:
+def handle_portchan(etherchannel_summary: str, chan_id: str) -> Optional[str]:
     """
-    Given a port channel and a netmiko connection reference, find the first link in the port channel.
+    Takes a etherchannel table and parses it to find an appropriate physical link to follow
     """
     if "Po" in chan_id:
-        chan_id = "".join([char for char in chan_id if char.isnumeric()])
-    all_chans = device_connection_handle.send_command(
-        "show etherchannel summary", use_textfsm=True
+        chan_id = int("".join([char for char in chan_id if char.isnumeric()]))
+    parsed_etherchannel = tracemac_parser.parse_etherchannel_summary(
+        etherchannel_summary
     )
-    if isinstance(all_chans, list):
-        for chan in all_chans:
-            if chan["group"] == chan_id:
-                return expand_portname(chan["interfaces"][0])
+    if len(parsed_etherchannel):
+        for chan in parsed_etherchannel:
+            if chan.group == chan_id:
+                if len(chan.ports):
+                    return expand_portname(
+                        chan.ports[0]
+                    )  # FIXME: this should take flags into account when the parser is ready.
+                else:
+                    return None
     return None
 
 
@@ -34,10 +40,10 @@ def shrink_portname(portname: str) -> Optional[str]:
     if not portname:
         return None
     return (
-        portname.replace("Ethernet", "", 1)
+        portname.replace("TenGigabit", "Te", 1)
+        .replace("Ethernet", "", 1)
         .replace("Fast", "Fa", 1)
         .replace("Gigabit", "Gi", 1)
-        .replace("TenGigabit", "Te", 1)
     )
 
 
@@ -76,36 +82,45 @@ def trace_macs(
     result = []
     with ConnectHandler(**connection_details) as conn:
         switch_hostname = conn.find_prompt()[:-1]
-        mac_to_local_iface = {}
-        for mac in mac_list:
-            # It is not intelligent to ask the switch for a partial mac table many times
-            # A better solution would be to ask the switch for it's entire mac table once
-            # But textfsm had some problems with that last I checked
-            # Parsing the mac table ourselves is a TODO for sure.
-            mac_table = conn.send_command(
-                f"sh mac address-table address {mac}", use_textfsm=True
-            )
-            if not isinstance(mac_table, list):
-                result.append(["err", mac, "Unknown", switch_hostname])
-                break
-            iface = expand_portname(mac_table[0]["destination_port".strip()])
-            if not iface:
+        mac_table = conn.send_command("sh mac address-table")
+        full_cdp_table = conn.send_command("show cdp neighbor detail")
+        full_etherchannel_summary = conn.send_command("show etherchannel summary")
+    mac_to_local_iface = {}
+    parsed_mac_table = tracemac_parser.parse_full_mac_addr_table(mac_table)
+    parsed_cdp_table = tracemac_parser.parse_full_cdp_table(full_cdp_table)
+    for mac in mac_list:
+        if not len(parsed_mac_table):
+            result.append(["err", mac, "Failed to parse mac table", switch_hostname])
+            break
+        found = False
+        for mac_entry in parsed_mac_table:
+            if not isinstance(mac_entry, tracemac_parser.MACTableEntry):
                 continue
-            if "Port-channel" in iface:
-                iface = handle_portchan(conn, iface)
-            mac_to_local_iface.update({mac: iface})
-        full_cdp_table = conn.send_command(f"sh cdp neighbor detail", use_textfsm=True)
+            if mac_entry.mac_address == mac:
+                found = mac_entry
+                break
+        if not found:
+            result.append(
+                ["err", mac, "MAC not found in mac address table", switch_hostname]
+            )
+            continue
+        iface = expand_portname(found.port.strip())
+        if not iface:
+            continue
+        if "Port-channel" in iface:
+            iface = handle_portchan(full_etherchannel_summary, iface)
+        mac_to_local_iface.update({mac: iface})
     for mac, iface in mac_to_local_iface.items():
         our_cdp = None
-        for cdp_entry in full_cdp_table:
-            if cdp_entry["local_port"] == iface:
+        for cdp_entry in parsed_cdp_table:
+            if cdp_entry.local_interface == iface:
                 our_cdp = cdp_entry
                 break
         else:
             result.append(["edge", mac, iface, switch_hostname])
             continue
-        if "Switch" in our_cdp["capabilities"]:
-            result.append(["recurse", mac, iface, cdp_entry["management_ip"]])
+        if tracemac_parser.CDPCapabilities.SWITCH in our_cdp.capabilities:
+            result.append(["recurse", mac, iface, cdp_entry.mgmt_addresses[0]])
         else:
             result.append(["edge", mac, iface, switch_hostname])
     return result
