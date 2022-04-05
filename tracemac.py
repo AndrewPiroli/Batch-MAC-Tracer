@@ -8,16 +8,31 @@ from netmiko import ConnectHandler
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
+etherchannel_cache_current_device_id: str = ""
+etherchannel_parse_cache: Dict[str, List[tracemac_parser.EtherChannelEntry]] = {}
 
-def handle_portchan(etherchannel_summary: str, chan_id: str) -> Optional[str]:
+
+def handle_portchan(
+    device_id: str, etherchannel_summary: str, chan_id: str
+) -> Optional[str]:
     """
     Takes a etherchannel table and parses it to find an appropriate physical link to follow
     """
+    global etherchannel_cache_current_device_id
     if "Po" in chan_id:
         chan_id = int("".join([char for char in chan_id if char.isnumeric()]))
-    parsed_etherchannel = tracemac_parser.parse_etherchannel_summary(
-        etherchannel_summary
-    )
+    try:
+        if device_id == etherchannel_cache_current_device_id:
+            parsed_etherchannel = etherchannel_parse_cache[etherchannel_summary]
+        else:
+            etherchannel_parse_cache.clear()
+            etherchannel_cache_current_device_id = device_id
+            raise KeyError
+    except KeyError:
+        parsed_etherchannel = tracemac_parser.parse_etherchannel_summary(
+            etherchannel_summary
+        )
+        etherchannel_parse_cache.update({etherchannel_summary: parsed_etherchannel})
     if len(parsed_etherchannel):
         for chan in parsed_etherchannel:
             if chan.group == chan_id:
@@ -108,7 +123,7 @@ def trace_macs(
         if not iface:
             continue
         if "Port-channel" in iface:
-            iface = handle_portchan(full_etherchannel_summary, iface)
+            iface = handle_portchan(switch_hostname, full_etherchannel_summary, iface)
         mac_to_local_iface.update({mac: iface})
     for mac, iface in mac_to_local_iface.items():
         our_cdp = None
