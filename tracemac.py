@@ -21,6 +21,8 @@ def handle_portchan(
     global etherchannel_cache_current_device_id
     if "Po" in chan_id:
         chan_id = int("".join([char for char in chan_id if char.isnumeric()]))
+    else:
+        return None
     try:
         if device_id == etherchannel_cache_current_device_id:
             parsed_etherchannel = etherchannel_parse_cache[etherchannel_summary]
