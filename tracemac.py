@@ -39,9 +39,14 @@ def handle_portchan(
         for chan in parsed_etherchannel:
             if chan.group == chan_id:
                 if len(chan.ports):
-                    return expand_portname(
-                        chan.ports[0]
-                    )  # FIXME: this should take flags into account when the parser is ready.
+                    found = False
+                    for port in chan.ports:
+                        if tracemac_parser.EtherChannelStates.BUNDLED in port.state:
+                            found = port
+                            break
+                    else:
+                        return None
+                    return expand_portname(found.name)
                 else:
                     return None
     return None

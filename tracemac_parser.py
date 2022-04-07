@@ -97,12 +97,51 @@ class CDPTableEntry:
     mgmt_addresses: List[str] = dataclasses.field(default_factory=list)
 
 
+class EtherChannelStates(Flag):
+    NONE = auto()
+    DOWN = auto()
+    BUNDLED = auto()
+    STAND_ALONE = auto()
+    SUSPENDED = auto()
+    HOT_STANDBY = auto()
+    LAYER3 = auto()
+    LAYER2 = auto()
+    IN_USE = auto()
+    FAILED_TO_ALLOC = auto()
+    NOT_IN_USE = auto()
+    UNSUITABLE_FOR_BUNDLE = auto()
+    WAITING_AGGREGATION = auto()
+    DEFAULT_PORT = auto()
+
+
+__etherchannel_str_to_state = {
+    "D": EtherChannelStates.DOWN,
+    "P": EtherChannelStates.BUNDLED,
+    "I": EtherChannelStates.STAND_ALONE,
+    "s": EtherChannelStates.SUSPENDED,
+    "H": EtherChannelStates.HOT_STANDBY,
+    "R": EtherChannelStates.LAYER3,
+    "S": EtherChannelStates.LAYER2,
+    "U": EtherChannelStates.IN_USE,
+    "f": EtherChannelStates.FAILED_TO_ALLOC,
+    "M": EtherChannelStates.NOT_IN_USE,
+    "u": EtherChannelStates.UNSUITABLE_FOR_BUNDLE,
+    "d": EtherChannelStates.DEFAULT_PORT,
+}
+
+
+@dataclasses.dataclass(order=True, frozen=True)
+class EtherChannelPort:
+    name: str
+    state: EtherChannelStates
+
+
 @dataclasses.dataclass(order=True, frozen=True)
 class EtherChannelEntry:
     group: int
     portchannel: str
     protocol: str
-    ports: List[str] = dataclasses.field(default_factory=list)
+    ports: List[EtherChannelPort]
 
 
 def parse_single_cdp_entry(entry: str) -> CDPTableEntry:
@@ -245,8 +284,15 @@ def parse_etherchannel_summary(etherchannel_summary: str) -> List[EtherChannelEn
         ifaces = []
         for iface in table_parts:
             if match := __etherchannel_strip_parens__.search(iface):
-                ifaces.append(
-                    match.group(1)
-                )  # FIXME: We should parse the flags here instead of throwing them away
+                port_name = match.group(1)
+                port_states: str = match.group(2)
+                parsed_states = EtherChannelStates.NONE
+                for state_char in port_states:
+                    try:
+                        parsed_states |= __etherchannel_str_to_state[state_char]
+                    except KeyError:
+                        pass
+                parsed_states ^= EtherChannelStates.NONE
+                ifaces.append(EtherChannelPort(port_name, parsed_states))
         ret.append(EtherChannelEntry(group, port_channel, protocol, ifaces))
     return ret
