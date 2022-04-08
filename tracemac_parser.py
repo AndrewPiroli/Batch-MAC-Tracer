@@ -2,7 +2,7 @@ import dataclasses
 import re
 import traceback
 from enum import auto, Flag
-from typing import List
+from typing import List, Tuple
 
 __cdp_entry_delimiter__ = re.compile(
     r"Device ID:.*?Unidirectional Mode:.*?(\n|\r|\r\n)", re.DOTALL | re.MULTILINE
@@ -93,16 +93,16 @@ class CDPTableEntry:
     duplex: str
     unidirectional_mode: str
     capabilities: CDPCapabilities
-    entry_addresses: List[str] = dataclasses.field(default_factory=list)
-    mgmt_addresses: List[str] = dataclasses.field(default_factory=list)
+    entry_addresses: Tuple[str]
+    mgmt_addresses: Tuple[str]
 
     def __post_init__(self):
         if not isinstance(self.capabilities, CDPCapabilities):
             raise TypeError("CDPTableEntry.capabilities is not a CDPCapabilities type")
-        if not isinstance(self.entry_addresses, list):
-            raise TypeError("CDPTableEntry.entry_addresses is not a list type")
-        if not isinstance(self.mgmt_addresses, list):
-            raise TypeError("CDPTableEntry.mgmt_addresses is not a list type")
+        if not isinstance(self.entry_addresses, tuple):
+            raise TypeError("CDPTableEntry.entry_addresses is not a tuple type")
+        if not isinstance(self.mgmt_addresses, tuple):
+            raise TypeError("CDPTableEntry.mgmt_addresses is not a tuple type")
 
 
 class EtherChannelStates(Flag):
@@ -153,13 +153,13 @@ class EtherChannelEntry:
     group: int
     portchannel: str
     protocol: str
-    ports: List[EtherChannelPort]
+    ports: Tuple[EtherChannelPort]
 
     def __post_init__(self):
         if not isinstance(self.group, int):
             raise TypeError("EtherChannelEntry.group is not an integer type")
-        if not isinstance(self.ports, list):
-            raise TypeError("EtherChannelEntry.ports is not a list type")
+        if not isinstance(self.ports, tuple):
+            raise TypeError("EtherChannelEntry.ports is not a tuple type")
         for idx, port in enumerate(self.ports):
             if not isinstance(port, EtherChannelPort):
                 raise TypeError(
@@ -242,8 +242,8 @@ def parse_single_cdp_entry(entry: str) -> CDPTableEntry:
         duplex,
         unidirectional_mode,
         capabilities,
-        entry_addrs,
-        mgmt_addrs,
+        tuple(entry_addrs),
+        tuple(mgmt_addrs),
     )
 
 
@@ -317,5 +317,5 @@ def parse_etherchannel_summary(etherchannel_summary: str) -> List[EtherChannelEn
                         pass
                 parsed_states ^= EtherChannelStates.NONE
                 ifaces.append(EtherChannelPort(port_name, parsed_states))
-        ret.append(EtherChannelEntry(group, port_channel, protocol, ifaces))
+        ret.append(EtherChannelEntry(group, port_channel, protocol, tuple(ifaces)))
     return ret
