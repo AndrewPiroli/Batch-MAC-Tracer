@@ -96,6 +96,14 @@ class CDPTableEntry:
     entry_addresses: List[str] = dataclasses.field(default_factory=list)
     mgmt_addresses: List[str] = dataclasses.field(default_factory=list)
 
+    def __post_init__(self):
+        if not isinstance(self.capabilities, CDPCapabilities):
+            raise TypeError("CDPTableEntry.capabilities is not a CDPCapabilities type")
+        if not isinstance(self.entry_addresses, list):
+            raise TypeError("CDPTableEntry.entry_addresses is not a list type")
+        if not isinstance(self.mgmt_addresses, list):
+            raise TypeError("CDPTableEntry.mgmt_addresses is not a list type")
+
 
 class EtherChannelStates(Flag):
     NONE = auto()
@@ -135,6 +143,10 @@ class EtherChannelPort:
     name: str
     state: EtherChannelStates
 
+    def __post_init__(self):
+        if not isinstance(self.state, EtherChannelStates):
+            raise TypeError("EtherChannelPort.state is not a EtherChannelStates type")
+
 
 @dataclasses.dataclass(order=True, frozen=True)
 class EtherChannelEntry:
@@ -142,6 +154,17 @@ class EtherChannelEntry:
     portchannel: str
     protocol: str
     ports: List[EtherChannelPort]
+
+    def __post_init__(self):
+        if not isinstance(self.group, int):
+            raise TypeError("EtherChannelEntry.group is not an integer type")
+        if not isinstance(self.ports, list):
+            raise TypeError("EtherChannelEntry.ports is not a list type")
+        for idx, port in enumerate(self.ports):
+            if not isinstance(port, EtherChannelPort):
+                raise TypeError(
+                    f"EtherChannelEntry.ports[{idx}] is not a EtherChannelPort type"
+                )
 
 
 def parse_single_cdp_entry(entry: str) -> CDPTableEntry:
