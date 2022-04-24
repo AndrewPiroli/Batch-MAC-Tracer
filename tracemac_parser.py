@@ -118,6 +118,14 @@ class CDPTableEntry:
             raise TypeError("CDPTableEntry.entry_addresses is not a tuple type")
         if not isinstance(self.mgmt_addresses, tuple):
             raise TypeError("CDPTableEntry.mgmt_addresses is not a tuple type")
+        for idx, maybe_entry_addr in enumerate(self.entry_addresses):
+            if not isinstance(maybe_entry_addr, str):
+                raise TypeError(
+                    f"CDPTableEntry.entry_addreses[{idx}] is not a str type"
+                )
+        for idx, maybe_mgmt_addr in enumerate(self.mgmt_addresses):
+            if not isinstance(maybe_mgmt_addr, str):
+                raise TypeError(f"CDPTableEntry.mgmt_addreses[{idx}] is not a str type")
 
 
 class EtherChannelStates(Flag):
