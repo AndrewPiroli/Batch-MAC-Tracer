@@ -44,16 +44,31 @@ class MACTableEntry:
     port: str
 
     def __post_init__(self):
-        assert isinstance(self.vlan, int), "Vlan must be an integer"
-        assert 0 < self.vlan < 4096, "Vlan out of range, 0 - 4096"
-        assert len(self.mac_address) == 14, "mac address string out of range"
-        assert self.entry_type.lower() in (
+        if not isinstance(self.vlan, int):
+            raise TypeError("vlan is not an integer type")
+        if not 0 < self.vlan < 4096:
+            raise ValueError("vlan out of range, 0 - 4096")
+        if not isinstance(self.mac_address, str):
+            raise TypeError("mac_address is not a str type")
+        if not len(self.mac_address) == 14:
+            raise ValueError(
+                f"mac_address is poorly formatted: length: {len(self.mac_address)} expected: 14"
+            )
+        if not isinstance(self.entry_type, str):
+            raise TypeError("entry_type is not a str type")
+        if not self.entry_type.lower() in (
             "dynamic",
             "static",
             "system",
             "igmp",
-        ), 'Invalid entry_type, "dynamic", "static", "system", "igmp"'
-        # We don't really care about the others.
+        ):
+            raise ValueError(
+                "entry_type but be 'dynamic', 'static', 'system', or 'igmp'"
+            )
+        if not isinstance(self.protocols, str):
+            raise TypeError("protocols must be a str type")
+        if not isinstance(self.port, str):
+            raise TypeError("port must be a str type")
 
 
 class CDPCapabilities(Flag):
