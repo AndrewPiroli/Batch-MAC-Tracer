@@ -89,6 +89,7 @@ __cdp_str_to_capability__ = {
     "IGMP": CDPCapabilities.IGMP,
     "Router": CDPCapabilities.ROUTER,
     "Source-Route-Bridge": CDPCapabilities.SOURCE_ROUTE_BRIDGE,
+    "Host": CDPCapabilities.HOST,
 }
 
 
