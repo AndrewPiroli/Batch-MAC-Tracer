@@ -4,9 +4,7 @@ import traceback
 from enum import auto, Flag
 from typing import List, Tuple
 
-__cdp_entry_delimiter__ = re.compile(
-    r"Device ID:.*?Unidirectional Mode:.*?(\n|\r|\r\n)", re.DOTALL | re.MULTILINE
-)
+__cdp_entry_delimiter__ = "-------------------------"
 __cdp_device_id__ = re.compile(r"Device ID: (.*?)(\r|\n|\r\n)", re.DOTALL)
 __cdp_ip_addr__ = re.compile(r"IP address: (.*?)(\r|\n|\r\n)", re.DOTALL)
 __cdp_platform__ = re.compile(r"Platform: (.*?),", re.DOTALL)
@@ -271,17 +269,27 @@ def parse_single_cdp_entry(entry: str) -> CDPTableEntry:
 
 
 def parse_full_cdp_table(cdp_table: str) -> List[CDPTableEntry]:
-    ret = list()
-    for match in __cdp_entry_delimiter__.finditer(cdp_table):
-        try:
-            entry_result = parse_single_cdp_entry(
-                cdp_table[match.start() : match.end()]
-            )
-            if isinstance(entry_result, CDPTableEntry):
-                ret.append(entry_result)
-        except Exception as e:
-            traceback.print_exc()
-    return ret
+    all_entries = list()
+    cdp_table_lines = cdp_table.splitlines()
+    table_maxlen = len(cdp_table_lines) - 1  # Zero index
+    current_entry = list()
+    in_entry = False
+    for idx, line in enumerate(cdp_table_lines):
+        if not in_entry:
+            if __cdp_entry_delimiter__ in line:
+                current_entry = list()
+                in_entry = True
+            continue
+        if __cdp_entry_delimiter__ in line or idx == table_maxlen:
+            try:
+                entry_result = parse_single_cdp_entry("\n".join(current_entry))
+                if isinstance(entry_result, CDPTableEntry):
+                    all_entries.append(entry_result)
+            except Exception as e:
+                traceback.print_exc()
+            current_entry = list()
+        current_entry.append(line)
+    return all_entries
 
 
 def parse_full_mac_addr_table(mac_table: str) -> List[MACTableEntry]:
