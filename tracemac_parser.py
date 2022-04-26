@@ -90,6 +90,11 @@ __cdp_str_to_capability__ = {
     "Router": CDPCapabilities.ROUTER,
     "Source-Route-Bridge": CDPCapabilities.SOURCE_ROUTE_BRIDGE,
     "Host": CDPCapabilities.HOST,
+    "Trans-Bridge": CDPCapabilities.TRANS_BRIDGE,
+    "Phone": CDPCapabilities.PHONE,
+    "Two-port": CDPCapabilities.TWO_PORT_MAC_RELAY, # shhhh
+    "Mac": CDPCapabilities.TWO_PORT_MAC_RELAY,
+    "Relay": CDPCapabilities.TWO_PORT_MAC_RELAY,
 }
 
 
