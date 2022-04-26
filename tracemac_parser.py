@@ -213,7 +213,10 @@ def parse_single_cdp_entry(entry: str) -> CDPTableEntry:
     capabilities = CDPCapabilities(CDPCapabilities.NONE)
     if match := __cdp_capabilities__.search(entry):
         for capability in match.group(1).split():
-            capabilities |= __cdp_str_to_capability__[capability]
+            try:
+                capabilities |= __cdp_str_to_capability__[capability]
+            except KeyError:
+                pass
         capabilities ^= CDPCapabilities.NONE
     if match := __cdp_local_int__.search(entry):
         local_interface = match.group(1)
