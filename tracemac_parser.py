@@ -5,27 +5,21 @@ from enum import auto, Flag
 from typing import List, Tuple
 
 __cdp_entry_delimiter__ = "-------------------------"
-__cdp_device_id__ = re.compile(r"Device ID: (.*?)(\r|\n|\r\n)", re.DOTALL)
-__cdp_ip_addr__ = re.compile(r"IP address: (.*?)(\r|\n|\r\n)", re.DOTALL)
+__cdp_device_id__ = re.compile(r"Device ID: (.*?)\n", re.DOTALL)
+__cdp_ip_addr__ = re.compile(r"IP address: (.*?)\n", re.DOTALL)
 __cdp_platform__ = re.compile(r"Platform: (.*?),", re.DOTALL)
-__cdp_capabilities__ = re.compile(r"Capabilities: (.*?)(\r|\n|\r\n)", re.DOTALL)
+__cdp_capabilities__ = re.compile(r"Capabilities: (.*?)\n", re.DOTALL)
 __cdp_local_int__ = re.compile(r"Interface: (.*?),", re.DOTALL)
-__cdp_remote_int__ = re.compile(
-    r"Port ID \(outgoing port\): (.*?)(\r|\n|\r\n)", re.DOTALL
-)
-__cdp_holdtime__ = re.compile(r"Holdtime : (.*?)(\r|\n|\r\n)", re.DOTALL)
+__cdp_remote_int__ = re.compile(r"Port ID \(outgoing port\): (.*?)\n", re.DOTALL)
+__cdp_holdtime__ = re.compile(r"Holdtime : (.*?)\n", re.DOTALL)
 __cdp_version__ = re.compile(
     r"Version :(.*?)advertisement version:", re.DOTALL | re.MULTILINE
 )
-__cdp_advertisement_ver__ = re.compile(
-    r"advertisement version: (.*?)(\r|\n|\r\n)", re.DOTALL
-)
-__cdp_vtp_domain__ = re.compile(r"VTP Management Domain: (.*?)(\r|\n|\r\n)")
-__cdp_native_vlan__ = re.compile(r"Native VLAN: (.*?)(\r|\n|\r\n)", re.DOTALL)
-__cdp_duplex__ = re.compile(r"Duplex: (.*?)(\r|\n|\r\n)", re.DOTALL)
-__cdp_unidirectional_mode__ = re.compile(
-    r"Unidirectional Mode: (.*?)(\r|\n|\r\n)", re.DOTALL
-)
+__cdp_advertisement_ver__ = re.compile(r"advertisement version: (.*?)\n", re.DOTALL)
+__cdp_vtp_domain__ = re.compile(r"VTP Management Domain: (.*?)\n")
+__cdp_native_vlan__ = re.compile(r"Native VLAN: (.*?)\n", re.DOTALL)
+__cdp_duplex__ = re.compile(r"Duplex: (.*?)\n", re.DOTALL)
+__cdp_unidirectional_mode__ = re.compile(r"Unidirectional Mode: (.*?)\n", re.DOTALL)
 
 __etherchannel_start__ = re.compile(
     r"--+--"
