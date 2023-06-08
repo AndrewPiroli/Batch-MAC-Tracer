@@ -1,11 +1,9 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Andrew Piroli 2023
 
-from getpass import getpass
 from netmiko import ConnectHandler
 from pathlib import Path
-from abc import abstractmethod
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 from . import Plugin, PluginArgs, PluginArgDescription
 from core import *

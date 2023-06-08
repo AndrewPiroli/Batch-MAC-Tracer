@@ -5,7 +5,7 @@ import argparse
 import time
 import json
 from getpass import getpass
-from plugin import PLUGINS, PluginArgs, PluginArgDescription
+from plugin import PLUGINS, PluginArgs
 
 if __name__ == "__main__":
     available_plugins = [plugin for plugin in PLUGINS if plugin.can_load()]
