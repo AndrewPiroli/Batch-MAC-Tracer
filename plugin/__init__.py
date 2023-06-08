@@ -27,7 +27,7 @@ class PluginArgs:
 
 class Plugin(ABC):
     @abstractmethod
-    def start(self, args: PluginArgs) -> None:
+    def start(self, args: PluginArgs) -> List[TraceResult]:
         pass
 
     @staticmethod

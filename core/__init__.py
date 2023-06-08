@@ -2,7 +2,8 @@
 # Andrew Piroli 2023
 
 import dataclasses
-from typing import Optional
+from pathlib import Path
+from typing import List, Optional, Union
 
 
 @dataclasses.dataclass(eq=True, order=False, frozen=True)
@@ -60,3 +61,18 @@ def shrink_portname(portname: str) -> Optional[str]:
         .replace("Fast", "Fa", 1)
         .replace("Gigabit", "Gi", 1)
     )
+
+def resolve_macs(mac_file_or_single: Union[Path, str]) -> Optional[List[str]]:
+    res = []
+    try:
+        with open(mac_file_or_single) as mac_f:
+            for mac in mac_f:
+                formatted_mac = fmac_cisco(mac.strip())
+                if not formatted_mac:
+                    continue
+                res.append(formatted_mac)
+    except FileNotFoundError:
+        formatted_mac = fmac_cisco(mac_file_or_single.strip())
+        if formatted_mac is None:
+            return None
+    return res

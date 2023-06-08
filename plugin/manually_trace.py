@@ -99,34 +99,14 @@ def trace_macs(connection_details: Dict[str, str], mac_list: List[str]) -> List[
 
 def start_mac_trace(
     connection_details: Dict[str, str],
-    mac_file_or_single: Union[Path, str],
+    macs: List[str],
     progress_callback: Optional[Callable[[TraceResult], None]],
 ) -> List[TraceResult]:
     if not callable(progress_callback):
         # No callback, assign a lambda that will swallow anything.
         progress_callback: Callable[[TraceResult], None] = lambda *args: None
     current_node = str(connection_details["host"])
-    initial_node_to_mac: Dict[str, List[str]] = {}
-    try:
-        with open(mac_file_or_single) as mac_f:
-            for mac in mac_f:
-                formatted_mac = fmac_cisco(mac.strip())
-                if not formatted_mac:
-                    continue
-                if current_node in initial_node_to_mac:
-                    initial_node_to_mac[current_node].append(formatted_mac)
-                else:
-                    initial_node_to_mac.update(
-                        {
-                            current_node: [
-                                formatted_mac,
-                            ]
-                        }
-                    )
-    except FileNotFoundError:
-        formatted_mac = fmac_cisco(mac_file_or_single.strip())
-        if formatted_mac is None:
-            raise RuntimeError("MAC is not a path and is not a valid MAC.")
+    initial_node_to_mac: Dict[str, List[str]] = { connection_details["host"]: macs }
     next_node_to_mac: Dict[str, List[str]] = {}
     results = list()
     while len(initial_node_to_mac) != 0:
@@ -164,13 +144,17 @@ def start_mac_trace(
 
 class ManuallyTracePlugin(Plugin):
     def start(self, args: PluginArgs) -> List[TraceResult]:
+        macs = resolve_macs(args.details["macs"])
+        if macs is None:
+            print("Failed to resolve MACs")
+            return []
         args.details["netmiko"].update(
             {
                 "device_type": "cisco_ios",
                 "password": args.details["password"],
             }
         )
-        start_mac_trace(args.details["netmiko"], args.details["macs"], args.progress_callback)
+        return start_mac_trace(args.details["netmiko"], macs, args.progress_callback)
 
     @staticmethod
     def args() -> List[PluginArgDescription]:
