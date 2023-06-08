@@ -1,0 +1,8 @@
+{
+    "netmiko":{
+        "host": "192.168.1.1",
+        "username": "admin",
+        "secret": "S3cr3t"
+    },
+    "plugin": "manualtracer"
+}

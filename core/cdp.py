@@ -1,8 +1,11 @@
-import dataclasses
+# SPDX-License-Identifier: BSD-3-Clause
+# Andrew Piroli 2023
+
 import re
+import dataclasses
 import traceback
-from enum import auto, Flag
-from typing import List, Tuple
+from enum import Flag, auto
+from typing import Tuple, List
 
 __cdp_entry_delimiter__ = "-------------------------"
 __cdp_device_id__ = re.compile(r"Device ID: (.*?)\n", re.DOTALL)
@@ -20,48 +23,6 @@ __cdp_vtp_domain__ = re.compile(r"VTP Management Domain: (.*?)\n")
 __cdp_native_vlan__ = re.compile(r"Native VLAN: (.*?)\n", re.DOTALL)
 __cdp_duplex__ = re.compile(r"Duplex: (.*?)\n", re.DOTALL)
 __cdp_unidirectional_mode__ = re.compile(r"Unidirectional Mode: (.*?)\n", re.DOTALL)
-
-__etherchannel_start__ = re.compile(
-    r"--+--"
-)  # This looks dumb, but it gets us in the ballpark
-__etherchannel_strip_parens__ = re.compile(r"(.*?)(\(.*?\))", re.DOTALL)
-
-
-@dataclasses.dataclass(order=True, frozen=True)
-class MACTableEntry:
-    vlan: int
-    mac_address: str
-    entry_type: str
-    protocols: str
-    port: str
-
-    def __post_init__(self):
-        if not isinstance(self.vlan, int):
-            raise TypeError("vlan is not an integer type")
-        if not 0 < self.vlan < 4096:
-            raise ValueError("vlan out of range, 0 - 4096")
-        if not isinstance(self.mac_address, str):
-            raise TypeError("mac_address is not a str type")
-        if not len(self.mac_address) == 14:
-            raise ValueError(
-                f"mac_address is poorly formatted: length: {len(self.mac_address)} expected: 14"
-            )
-        if not isinstance(self.entry_type, str):
-            raise TypeError("entry_type is not a str type")
-        if not self.entry_type.lower() in (
-            "dynamic",
-            "static",
-            "system",
-            "igmp",
-        ):
-            raise ValueError(
-                "entry_type but be 'dynamic', 'static', 'system', or 'igmp'"
-            )
-        if not isinstance(self.protocols, str):
-            raise TypeError("protocols must be a str type")
-        if not isinstance(self.port, str):
-            raise TypeError("port must be a str type")
-
 
 class CDPCapabilities(Flag):
     NONE = auto()
@@ -124,69 +85,6 @@ class CDPTableEntry:
         for idx, maybe_mgmt_addr in enumerate(self.mgmt_addresses):
             if not isinstance(maybe_mgmt_addr, str):
                 raise TypeError(f"CDPTableEntry.mgmt_addreses[{idx}] is not a str type")
-
-
-class EtherChannelStates(Flag):
-    NONE = auto()
-    DOWN = auto()
-    BUNDLED = auto()
-    STAND_ALONE = auto()
-    SUSPENDED = auto()
-    HOT_STANDBY = auto()
-    LAYER3 = auto()
-    LAYER2 = auto()
-    IN_USE = auto()
-    FAILED_TO_ALLOC = auto()
-    NOT_IN_USE = auto()
-    UNSUITABLE_FOR_BUNDLE = auto()
-    WAITING_AGGREGATION = auto()
-    DEFAULT_PORT = auto()
-
-
-__etherchannel_str_to_state = {
-    "D": EtherChannelStates.DOWN,
-    "P": EtherChannelStates.BUNDLED,
-    "I": EtherChannelStates.STAND_ALONE,
-    "s": EtherChannelStates.SUSPENDED,
-    "H": EtherChannelStates.HOT_STANDBY,
-    "R": EtherChannelStates.LAYER3,
-    "S": EtherChannelStates.LAYER2,
-    "U": EtherChannelStates.IN_USE,
-    "f": EtherChannelStates.FAILED_TO_ALLOC,
-    "M": EtherChannelStates.NOT_IN_USE,
-    "u": EtherChannelStates.UNSUITABLE_FOR_BUNDLE,
-    "d": EtherChannelStates.DEFAULT_PORT,
-}
-
-
-@dataclasses.dataclass(order=True, frozen=True)
-class EtherChannelPort:
-    name: str
-    state: EtherChannelStates
-
-    def __post_init__(self):
-        if not isinstance(self.state, EtherChannelStates):
-            raise TypeError("EtherChannelPort.state is not a EtherChannelStates type")
-
-
-@dataclasses.dataclass(order=True, frozen=True)
-class EtherChannelEntry:
-    group: int
-    portchannel: str
-    protocol: str
-    ports: Tuple[EtherChannelPort]
-
-    def __post_init__(self):
-        if not isinstance(self.group, int):
-            raise TypeError("EtherChannelEntry.group is not an integer type")
-        if not isinstance(self.ports, tuple):
-            raise TypeError("EtherChannelEntry.ports is not a tuple type")
-        for idx, port in enumerate(self.ports):
-            if not isinstance(port, EtherChannelPort):
-                raise TypeError(
-                    f"EtherChannelEntry.ports[{idx}] is not a EtherChannelPort type"
-                )
-
 
 def parse_single_cdp_entry(entry: str) -> CDPTableEntry:
     if match := __cdp_device_id__.search(entry):
@@ -293,63 +191,3 @@ def parse_full_cdp_table(cdp_table: str) -> List[CDPTableEntry]:
             current_entry = list()
         current_entry.append(line)
     return all_entries
-
-
-def parse_full_mac_addr_table(mac_table: str) -> List[MACTableEntry]:
-    ret = []
-    for mac_table_line in mac_table.splitlines():
-        if "Multicast Entries" in mac_table_line:
-            break
-        try:
-            parsed_entry = mac_table_line.split()
-            if (
-                not 4 <= len(parsed_entry) <= 5
-            ):  # Switches that "know" about non-ip protocols will have a 5th column, even if they don't support anything other than ip
-                continue
-            parsed_entry[0] = int(parsed_entry[0])
-            if len(parsed_entry) == 4:
-                parsed_entry.append(parsed_entry[3])
-                parsed_entry[3] = "N/A"
-            final_parsed = MACTableEntry(*parsed_entry)
-            ret.append(final_parsed)
-        except Exception as e:
-            pass
-    return ret
-
-
-def parse_etherchannel_summary(etherchannel_summary: str) -> List[EtherChannelEntry]:
-    if match := __etherchannel_start__.search(etherchannel_summary):
-        etherchannel_table = (etherchannel_summary[match.start() :]).splitlines()
-    else:
-        return []
-    ret = []
-    for etherchannel_table_entry in etherchannel_table:
-        table_parts = etherchannel_table_entry.split()
-        if len(table_parts) < 3:
-            continue
-        try:
-            group = int(table_parts.pop(0))
-        except ValueError:
-            continue
-        if match := __etherchannel_strip_parens__.search(table_parts.pop(0)):
-            port_channel = match.group(1)
-        else:
-            continue
-        protocol = table_parts.pop(0)
-        if protocol.lower() not in ("lacp", "pagp"):
-            continue
-        ifaces = []
-        for iface in table_parts:
-            if match := __etherchannel_strip_parens__.search(iface):
-                port_name = match.group(1)
-                port_states: str = match.group(2)
-                parsed_states = EtherChannelStates.NONE
-                for state_char in port_states:
-                    try:
-                        parsed_states |= __etherchannel_str_to_state[state_char]
-                    except KeyError:
-                        pass
-                parsed_states ^= EtherChannelStates.NONE
-                ifaces.append(EtherChannelPort(port_name, parsed_states))
-        ret.append(EtherChannelEntry(group, port_channel, protocol, tuple(ifaces)))
-    return ret

@@ -1,8 +1,11 @@
+# SPDX-License-Identifier: BSD-3-Clause
+# Andrew Piroli 2023
+
 import sys
 from csv import DictReader
 from argparse import ArgumentParser
 from typing import Dict, List, Optional
-from tracemac import fmac_cisco
+from core import fmac_cisco
 
 
 def main():
