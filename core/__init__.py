@@ -62,6 +62,7 @@ def shrink_portname(portname: str) -> Optional[str]:
         .replace("Gigabit", "Gi", 1)
     )
 
+
 def resolve_macs(mac_file_or_single: Union[Path, str]) -> Optional[List[str]]:
     res = []
     try:

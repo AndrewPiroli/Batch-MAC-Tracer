@@ -2,7 +2,7 @@
 # Andrew Piroli 2023
 
 import dataclasses
-import importlib
+import importlib.util
 import sys
 from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Callable, Any, Type
@@ -58,6 +58,7 @@ class PluginDecription:
 
 
 from .manually_trace import ManuallyTracePlugin
+from .librenms import LibreNMSPlugin
 
 PLUGINS = [
     PluginDecription(
@@ -65,5 +66,11 @@ PLUGINS = [
         description="An SSH based Screen Scraping tracer",
         dependencies=["netmiko"],
         cls=ManuallyTracePlugin,
+    ),
+    PluginDecription(
+        name="LibreNMS",
+        description="A LibreNMS discovery based tracer",
+        dependencies=["requests"],
+        cls=LibreNMSPlugin,
     ),
 ]

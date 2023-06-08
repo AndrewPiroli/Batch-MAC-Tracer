@@ -39,20 +39,16 @@ if __name__ == "__main__":
     plugin = selected_plugin.cls()
     args_need = plugin.args()
     while True:
-        missing = [m for m in args_need if m.name not in args_have]
+        missing = [m for m in args_need if m.name not in args_have and not m.optional]
         if len(missing) == 0:
             break
         print("Missing arguments: {}".format(", ".join([m.name for m in missing])))
         for arg in missing:
             if arg.can_fill_interactively == False:
-                if arg.optional:
-                    print(f"Argument {arg.name}: {arg.description} cannot be filled interactively")
-                    continue
-                else:
-                    print(
-                        f"Argument {arg.name}: {arg.description} cannot be filled interactively and is required"
-                    )
-                    exit(1)
+                print(
+                    f"Argument {arg.name}: {arg.description} cannot be filled interactively and is required"
+                )
+                exit(1)
             print(f"Enter value for {arg.name} ({arg.description}): ", end="", flush=True)
             if arg.secret:
                 loaded_config[arg.name] = getpass("")

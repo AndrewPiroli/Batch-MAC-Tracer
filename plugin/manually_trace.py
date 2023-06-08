@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Andrew Piroli 2023
-
-from netmiko import ConnectHandler
-from pathlib import Path
-from typing import Callable, Dict, List, Optional, Union
+try:
+    from netmiko import ConnectHandler
+except ImportError:
+    pass
+from typing import Callable, Dict, List, Optional
 
 from . import Plugin, PluginArgs, PluginArgDescription
 from core import *
@@ -106,7 +107,7 @@ def start_mac_trace(
         # No callback, assign a lambda that will swallow anything.
         progress_callback: Callable[[TraceResult], None] = lambda *args: None
     current_node = str(connection_details["host"])
-    initial_node_to_mac: Dict[str, List[str]] = { connection_details["host"]: macs }
+    initial_node_to_mac: Dict[str, List[str]] = {connection_details["host"]: macs}
     next_node_to_mac: Dict[str, List[str]] = {}
     results = list()
     while len(initial_node_to_mac) != 0:
