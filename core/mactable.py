@@ -4,6 +4,7 @@
 import dataclasses
 from typing import List
 
+
 @dataclasses.dataclass(order=True, frozen=True)
 class MACTableEntry:
     vlan: int
@@ -20,9 +21,7 @@ class MACTableEntry:
         if not isinstance(self.mac_address, str):
             raise TypeError("mac_address is not a str type")
         if not len(self.mac_address) == 14:
-            raise ValueError(
-                f"mac_address is poorly formatted: length: {len(self.mac_address)} expected: 14"
-            )
+            raise ValueError(f"mac_address is poorly formatted: length: {len(self.mac_address)} expected: 14")
         if not isinstance(self.entry_type, str):
             raise TypeError("entry_type is not a str type")
         if not self.entry_type.lower() in (
@@ -31,13 +30,12 @@ class MACTableEntry:
             "system",
             "igmp",
         ):
-            raise ValueError(
-                "entry_type but be 'dynamic', 'static', 'system', or 'igmp'"
-            )
+            raise ValueError("entry_type but be 'dynamic', 'static', 'system', or 'igmp'")
         if not isinstance(self.protocols, str):
             raise TypeError("protocols must be a str type")
         if not isinstance(self.port, str):
             raise TypeError("port must be a str type")
+
 
 def parse_full_mac_addr_table(mac_table: str) -> List[MACTableEntry]:
     ret = []

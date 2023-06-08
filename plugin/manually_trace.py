@@ -17,9 +17,7 @@ etherchannel_cache_current_device_id: str = ""
 etherchannel_parse_cache: Dict[str, List[EtherChannelEntry]] = {}
 
 
-def handle_portchan(
-    device_id: str, etherchannel_summary: str, chan_id: str
-) -> Optional[str]:
+def handle_portchan(device_id: str, etherchannel_summary: str, chan_id: str) -> Optional[str]:
     """
     Takes a etherchannel table and parses it to find an appropriate physical link to follow
     """
@@ -36,9 +34,7 @@ def handle_portchan(
             etherchannel_cache_current_device_id = device_id
             raise KeyError
     except KeyError:
-        parsed_etherchannel = parse_etherchannel_summary(
-            etherchannel_summary
-        )
+        parsed_etherchannel = parse_etherchannel_summary(etherchannel_summary)
         etherchannel_parse_cache.update({etherchannel_summary: parsed_etherchannel})
     if len(parsed_etherchannel):
         for chan in parsed_etherchannel:
@@ -57,9 +53,7 @@ def handle_portchan(
     return None
 
 
-def trace_macs(
-    connection_details: Dict[str, str], mac_list: List[str]
-) -> List[List[str]]:
+def trace_macs(connection_details: Dict[str, str], mac_list: List[str]) -> List[List[str]]:
     result = []
     with ConnectHandler(**connection_details) as conn:
         switch_hostname = conn.find_prompt()[:-1]
@@ -81,9 +75,7 @@ def trace_macs(
                 found = mac_entry
                 break
         if not found:
-            result.append(
-                ["err", mac, "MAC not found in mac address table", switch_hostname]
-            )
+            result.append(["err", mac, "MAC not found in mac address table", switch_hostname])
             continue
         iface = expand_portname(found.port.strip())
         if not iface:
@@ -145,9 +137,7 @@ def start_mac_trace(
             interface = None
             next_connection_deetails = connection_details
             next_connection_deetails.update({"host": current_node})
-            for status, mac, interface, current_node in trace_macs(
-                next_connection_deetails, mac_list
-            ):
+            for status, mac, interface, current_node in trace_macs(next_connection_deetails, mac_list):
                 if status == "edge":
                     result_interface = shrink_portname(interface)
                     res = TraceResult("ok", mac, current_node, result_interface)
@@ -167,28 +157,38 @@ def start_mac_trace(
                 else:
                     result_interface = shrink_portname(interface)
                     res = TraceResult("err-unknown", mac, current_node, result_interface)
-                    progress_callback(
-                        res
-                    )
-                    results.append(
-                        res
-                    )
+                    progress_callback(res)
+                    results.append(res)
         initial_node_to_mac = next_node_to_mac
         next_node_to_mac = {}
     return results
 
+
 class ManuallyTracePlugin(Plugin):
     def start(self, args: PluginArgs) -> List[TraceResult]:
-        args.details["netmiko"].update({
-            "device_type": "cisco_ios",
-            "password": args.details["password"],
-        })
+        args.details["netmiko"].update(
+            {
+                "device_type": "cisco_ios",
+                "password": args.details["password"],
+            }
+        )
         start_mac_trace(args.details["netmiko"], args.details["macs"], args.progress_callback)
-    
+
     @staticmethod
     def args() -> List[PluginArgDescription]:
         return [
-            PluginArgDescription(name="netmiko", description="Netmiko connection details", can_fill_interactively=False),
-            PluginArgDescription(name="password", description="Password for netmiko connection", can_fill_interactively=True, secret=True),
-            PluginArgDescription(name="macs", description="Path to file containing MACs to trace OR a single MAC address", can_fill_interactively=True)
+            PluginArgDescription(
+                name="netmiko", description="Netmiko connection details", can_fill_interactively=False
+            ),
+            PluginArgDescription(
+                name="password",
+                description="Password for netmiko connection",
+                can_fill_interactively=True,
+                secret=True,
+            ),
+            PluginArgDescription(
+                name="macs",
+                description="Path to file containing MACs to trace OR a single MAC address",
+                can_fill_interactively=True,
+            ),
         ]

@@ -13,19 +13,16 @@ if __name__ == "__main__":
     if len(available_plugins) == 0:
         print("No plugins available, please install the dependencies for at least one plugin.")
         exit(1)
-    parser = argparse.ArgumentParser(
-        description="Bulk trace MAC addresses"
-    )
-    parser.add_argument(
-        "CONFIG", help="JSON Config file to load", type=argparse.FileType("r")
-    )
-    parser.add_argument(
-        "--plugin", "-p", help=f"The plugin to use, options: {plugin_names}")
+    parser = argparse.ArgumentParser(description="Bulk trace MAC addresses")
+    parser.add_argument("CONFIG", help="JSON Config file to load", type=argparse.FileType("r"))
+    parser.add_argument("--plugin", "-p", help=f"The plugin to use, options: {plugin_names}")
     args = parser.parse_args()
     loaded_config = json.load(args.CONFIG)
     args_have = {*loaded_config}
     if args.plugin is not None:
-        selected_plugin = next(p for p in available_plugins if p.name.strip().lower() == args.plugin.strip().lower())
+        selected_plugin = next(
+            p for p in available_plugins if p.name.strip().lower() == args.plugin.strip().lower()
+        )
         if selected_plugin is None:
             print(f"No plugin found with name: {args.plugin}\nOptions: {plugin_names}")
             exit(1)
@@ -52,7 +49,9 @@ if __name__ == "__main__":
                     print(f"Argument {arg.name}: {arg.description} cannot be filled interactively")
                     continue
                 else:
-                    print(f"Argument {arg.name}: {arg.description} cannot be filled interactively and is required")
+                    print(
+                        f"Argument {arg.name}: {arg.description} cannot be filled interactively and is required"
+                    )
                     exit(1)
             print(f"Enter value for {arg.name} ({arg.description}): ", end="", flush=True)
             if arg.secret:

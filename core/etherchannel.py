@@ -6,10 +6,9 @@ import dataclasses
 from enum import Flag, auto
 from typing import List, Tuple
 
-__etherchannel_start__ = re.compile(
-    r"--+--"
-)  # This looks dumb, but it gets us in the ballpark
+__etherchannel_start__ = re.compile(r"--+--")  # This looks dumb, but it gets us in the ballpark
 __etherchannel_strip_parens__ = re.compile(r"(.*?)(\(.*?\))", re.DOTALL)
+
 
 class EtherChannelStates(Flag):
     NONE = auto()
@@ -68,9 +67,7 @@ class EtherChannelEntry:
             raise TypeError("EtherChannelEntry.ports is not a tuple type")
         for idx, port in enumerate(self.ports):
             if not isinstance(port, EtherChannelPort):
-                raise TypeError(
-                    f"EtherChannelEntry.ports[{idx}] is not a EtherChannelPort type"
-                )
+                raise TypeError(f"EtherChannelEntry.ports[{idx}] is not a EtherChannelPort type")
 
 
 def parse_etherchannel_summary(etherchannel_summary: str) -> List[EtherChannelEntry]:

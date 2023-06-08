@@ -4,6 +4,7 @@
 import dataclasses
 from typing import Optional
 
+
 @dataclasses.dataclass(eq=True, order=False, frozen=True)
 class TraceResult:
     status: str
@@ -42,6 +43,7 @@ def fmac_cisco(mac: str) -> Optional[str]:
     if len(mac) != 12:
         return None
     return f"{mac[:4]}.{mac[4:8]}.{mac[8:12]}"
+
 
 def shrink_portname(portname: str) -> Optional[str]:
     """

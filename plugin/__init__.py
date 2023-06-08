@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Callable, Any, Type
 from core import TraceResult
 
+
 @dataclasses.dataclass(eq=True, order=False, frozen=True)
 class PluginArgDescription:
     name: str
@@ -17,10 +18,12 @@ class PluginArgDescription:
     secret: bool = False
     default: Any = None
 
+
 @dataclasses.dataclass(eq=True, order=False, frozen=True)
 class PluginArgs:
     details: Dict[str, Any]
     progress_callback: Optional[Callable[[TraceResult], None]]
+
 
 class Plugin(ABC):
     @abstractmethod
@@ -32,6 +35,7 @@ class Plugin(ABC):
     def args() -> List[PluginArgDescription]:
         pass
 
+
 @dataclasses.dataclass(eq=True, order=False, frozen=True)
 class PluginDecription:
     name: str
@@ -42,6 +46,7 @@ class PluginDecription:
     """
     Test if the plugin can be loaded by checking if its depenedencies are can be imported
     """
+
     def can_load(self) -> bool:
         for dependency in self.dependencies:
             if dependency in sys.modules:
@@ -51,7 +56,14 @@ class PluginDecription:
                 return False
         return True
 
+
 from .manually_trace import ManuallyTracePlugin
+
 PLUGINS = [
-    PluginDecription(name="ManualTracer", description="An SSH based Screen Scraping tracer", dependencies=["netmiko"], cls=ManuallyTracePlugin),
+    PluginDecription(
+        name="ManualTracer",
+        description="An SSH based Screen Scraping tracer",
+        dependencies=["netmiko"],
+        cls=ManuallyTracePlugin,
+    ),
 ]

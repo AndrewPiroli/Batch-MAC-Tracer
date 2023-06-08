@@ -15,14 +15,13 @@ __cdp_capabilities__ = re.compile(r"Capabilities: (.*?)\n", re.DOTALL)
 __cdp_local_int__ = re.compile(r"Interface: (.*?),", re.DOTALL)
 __cdp_remote_int__ = re.compile(r"Port ID \(outgoing port\): (.*?)\n", re.DOTALL)
 __cdp_holdtime__ = re.compile(r"Holdtime : (.*?)\n", re.DOTALL)
-__cdp_version__ = re.compile(
-    r"Version :(.*?)advertisement version:", re.DOTALL | re.MULTILINE
-)
+__cdp_version__ = re.compile(r"Version :(.*?)advertisement version:", re.DOTALL | re.MULTILINE)
 __cdp_advertisement_ver__ = re.compile(r"advertisement version: (.*?)\n", re.DOTALL)
 __cdp_vtp_domain__ = re.compile(r"VTP Management Domain: (.*?)\n")
 __cdp_native_vlan__ = re.compile(r"Native VLAN: (.*?)\n", re.DOTALL)
 __cdp_duplex__ = re.compile(r"Duplex: (.*?)\n", re.DOTALL)
 __cdp_unidirectional_mode__ = re.compile(r"Unidirectional Mode: (.*?)\n", re.DOTALL)
+
 
 class CDPCapabilities(Flag):
     NONE = auto()
@@ -79,12 +78,11 @@ class CDPTableEntry:
             raise TypeError("CDPTableEntry.mgmt_addresses is not a tuple type")
         for idx, maybe_entry_addr in enumerate(self.entry_addresses):
             if not isinstance(maybe_entry_addr, str):
-                raise TypeError(
-                    f"CDPTableEntry.entry_addreses[{idx}] is not a str type"
-                )
+                raise TypeError(f"CDPTableEntry.entry_addreses[{idx}] is not a str type")
         for idx, maybe_mgmt_addr in enumerate(self.mgmt_addresses):
             if not isinstance(maybe_mgmt_addr, str):
                 raise TypeError(f"CDPTableEntry.mgmt_addreses[{idx}] is not a str type")
+
 
 def parse_single_cdp_entry(entry: str) -> CDPTableEntry:
     if match := __cdp_device_id__.search(entry):

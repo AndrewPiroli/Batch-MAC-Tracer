@@ -12,16 +12,10 @@ def main():
     parser = ArgumentParser(
         description="Rewrite the output of a mac trace to the same order as the input data"
     )
-    parser.add_argument(
-        "ORIGINAL_INPUT", help="The original input file, 1 line per MAC"
-    )
+    parser.add_argument("ORIGINAL_INPUT", help="The original input file, 1 line per MAC")
     operating_mode = parser.add_mutually_exclusive_group(required=True)
-    operating_mode.add_argument(
-        "--file", help="The output from MAC tracing in CSV format"
-    )
-    operating_mode.add_argument(
-        "--stdin", help="Read the MAC trace from standard input", action="store_true"
-    )
+    operating_mode.add_argument("--file", help="The output from MAC tracing in CSV format")
+    operating_mode.add_argument("--stdin", help="Read the MAC trace from standard input", action="store_true")
     args = parser.parse_args()
     trace_data = None
     if args.stdin:
@@ -38,11 +32,7 @@ def main():
                 idx = locate(line, trace_data)
                 if idx is not None:
                     found = trace_data[idx]
-                    print(
-                        "{},{},{},{}".format(
-                            line, found["result"], found["switch"], found["interface"]
-                        )
-                    )
+                    print("{},{},{},{}".format(line, found["result"], found["switch"], found["interface"]))
                 else:
                     print(f"{line},failed,failed,failed")
                     print(f"Locate failed {line = } {trace_data = }", file=sys.stderr)
