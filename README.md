@@ -1,16 +1,24 @@
-## Cisco Batch MAC Tracer
+## Batch MAC Tracer
 
-A WIP MAC address tracer.
+Find the switchport of MAC addresses on your network. Currently 2 plugins are available for discovery:
 
-## Requirements
+ * ManualTracer - SSH screen scraping based. It's old reliable but has restrictions on when it can be used
+ * LibreNMS - new system that uses LibreNMS to find ports, a work in progress still
 
-* Python <= 3.8
-* netmiko
+## Requirements and Limitations
 
-## Known Usability Issues
+ * Python >= 3.8
 
-* Only works with Cisco IOS/IOS-XE devices (device type hardcoded to "cisco\_ios" and uses `show mac address table`, `show cdp neighbors detail`, and `show etherchannel summary`)
+### Requirements and Limitations for ManualTracer Plugin
 
-* Assumes password and enable secret are the same
+ * netmiko library (install via `pip install netmiko`)
+ * Not L3 aware, will not cross an L3 boundry under any circumstancs
+ * Only works with Cisco IOS(-XE) switches due to fragile screen scaping templates and hardcoded console commands
 
-* Assumes login directly to enable/privileged exec
+### Requirements for LibreNMS Plugin
+
+ * requests library (install via `pip install requests`)
+ * A working LibreNMS installation with API access
+ * The port you're looking for must be polled by LibreNMS
+ * Work in progress, may return incorrect results
+
