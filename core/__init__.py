@@ -73,7 +73,7 @@ def resolve_macs(mac_file_or_single: Union[Path, str]) -> Optional[List[str]]:
                     continue
                 res.append(formatted_mac)
     except FileNotFoundError:
-        formatted_mac = fmac_cisco(mac_file_or_single.strip())
+        formatted_mac = fmac_cisco(str(mac_file_or_single).strip())
         if formatted_mac is None:
             return None
     return res

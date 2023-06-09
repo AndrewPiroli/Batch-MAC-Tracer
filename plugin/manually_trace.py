@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 # Andrew Piroli 2023
 try:
-    from netmiko import ConnectHandler
+    from netmiko import ConnectHandler  # type: ignore
 except ImportError:
     pass
 from typing import Callable, Dict, List, Optional
@@ -22,7 +22,7 @@ def handle_portchan(device_id: str, etherchannel_summary: str, chan_id: str) -> 
     """
     global etherchannel_cache_current_device_id
     if "Po" in chan_id:
-        chan_id = int("".join([char for char in chan_id if char.isnumeric()]))
+        chan_id = "".join([char for char in chan_id if char.isnumeric()])
     else:
         return None
     try:
@@ -37,7 +37,7 @@ def handle_portchan(device_id: str, etherchannel_summary: str, chan_id: str) -> 
         etherchannel_parse_cache.update({etherchannel_summary: parsed_etherchannel})
     if len(parsed_etherchannel):
         for chan in parsed_etherchannel:
-            if chan.group == chan_id:
+            if chan.group == int(chan_id):
                 if len(chan.ports):
                     found = False
                     for port in chan.ports:
@@ -55,10 +55,10 @@ def handle_portchan(device_id: str, etherchannel_summary: str, chan_id: str) -> 
 def trace_macs(connection_details: Dict[str, str], mac_list: List[str]) -> List[List[str]]:
     result = []
     with ConnectHandler(**connection_details) as conn:
-        switch_hostname = conn.find_prompt()[:-1]
-        mac_table = conn.send_command("sh mac address-table")
-        full_cdp_table = conn.send_command("show cdp neighbor detail")
-        full_etherchannel_summary = conn.send_command("show etherchannel summary")
+        switch_hostname = str(conn.find_prompt()[:-1])
+        mac_table = str(conn.send_command("sh mac address-table"))
+        full_cdp_table = str(conn.send_command("show cdp neighbor detail"))
+        full_etherchannel_summary = str(conn.send_command("show etherchannel summary"))
     mac_to_local_iface = {}
     parsed_mac_table = parse_full_mac_addr_table(mac_table)
     parsed_cdp_table = parse_full_cdp_table(full_cdp_table)
@@ -105,7 +105,7 @@ def start_mac_trace(
 ) -> List[TraceResult]:
     if not callable(progress_callback):
         # No callback, assign a lambda that will swallow anything.
-        progress_callback: Callable[[TraceResult], None] = lambda *args: None
+        progress_callback = lambda *args: None
     current_node = str(connection_details["host"])
     initial_node_to_mac: Dict[str, List[str]] = {connection_details["host"]: macs}
     next_node_to_mac: Dict[str, List[str]] = {}
@@ -118,9 +118,10 @@ def start_mac_trace(
             next_connection_deetails.update({"host": current_node})
             for status, mac, interface, current_node in trace_macs(next_connection_deetails, mac_list):
                 if status == "edge":
-                    result_interface = shrink_portname(interface)
+                    result_interface = str(shrink_portname(interface))
                     res = TraceResult("ok", mac, current_node, result_interface)
-                    progress_callback(res)
+                    if callable(progress_callback):
+                        progress_callback(res)
                     results.append(res)
                 elif status == "recurse":
                     if current_node in next_node_to_mac:
@@ -134,9 +135,10 @@ def start_mac_trace(
                             }
                         )
                 else:
-                    result_interface = shrink_portname(interface)
+                    result_interface = str(shrink_portname(interface))
                     res = TraceResult("err-unknown", mac, current_node, result_interface)
-                    progress_callback(res)
+                    if callable(progress_callback):
+                        progress_callback(res)
                     results.append(res)
         initial_node_to_mac = next_node_to_mac
         next_node_to_mac = {}

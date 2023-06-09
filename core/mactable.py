@@ -48,11 +48,11 @@ def parse_full_mac_addr_table(mac_table: str) -> List[MACTableEntry]:
                 not 4 <= len(parsed_entry) <= 5
             ):  # Switches that "know" about non-ip protocols will have a 5th column, even if they don't support anything other than ip
                 continue
-            parsed_entry[0] = int(parsed_entry[0])
+            parsed_entry[0] = int(parsed_entry[0])  # type: ignore
             if len(parsed_entry) == 4:
                 parsed_entry.append(parsed_entry[3])
                 parsed_entry[3] = "N/A"
-            final_parsed = MACTableEntry(*parsed_entry)
+            final_parsed = MACTableEntry(*parsed_entry)  # type: ignore
             ret.append(final_parsed)
         except Exception as e:
             pass

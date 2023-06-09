@@ -35,7 +35,8 @@ class LibreNMSPlugin(Plugin):
         res = []
         for mac in self.macs:
             found = self.find_mac(mac)
-            args.progress_callback(found)
+            if callable(args.progress_callback):
+                args.progress_callback(found)
             res.append(found)
         return res
 
