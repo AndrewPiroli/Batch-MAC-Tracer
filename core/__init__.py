@@ -88,16 +88,19 @@ def shrink_portname(portname: str) -> Optional[str]:
 
 
 def resolve_macs(mac_file_or_single: Union[Path, str]) -> Optional[List[str]]:
+    def style(mac: str) -> str:
+        detected_style = MACFormatStyle.recognize_style(mac)
+        return detected_style.to_style(MACFormatStyle.bare(mac))
     res = []
     try:
         with open(mac_file_or_single) as mac_f:
             for mac in mac_f:
-                formatted_mac = CISCO_STYLE.to_style(mac.strip())
+                formatted_mac = style(mac.strip())
                 if not formatted_mac:
                     continue
                 res.append(formatted_mac)
     except FileNotFoundError:
-        formatted_mac = CISCO_STYLE.to_style(str(mac_file_or_single).strip())
+        formatted_mac = style(str(mac_file_or_single).strip())
         if formatted_mac is None:
             return None
     return res

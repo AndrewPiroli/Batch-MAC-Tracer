@@ -19,6 +19,9 @@ class LibreNMSPlugin(Plugin):
             print("Invalid protocol [http, https]")
             return []
         self.macs = resolve_macs(args.details["macs"])
+        if self.macs is None:
+            print("Failed to resolve MACs")
+            return []
         self.rps = args.details["rps"] if "rps" in args.details else 10
         port = args.details["port"] if "port" in args.details else 443
         if not isinstance(port, int) or port < 1 or port > 65535:
@@ -29,9 +32,6 @@ class LibreNMSPlugin(Plugin):
             self.verify = args.details["tls_verify"] if "tls_verify" in args.details else True
         else:
             self.verify = False
-        if self.macs is None:
-            print("Failed to resolve MACs")
-            return []
         res = []
         for mac in self.macs:
             found = self.find_mac(mac)
@@ -76,8 +76,8 @@ class LibreNMSPlugin(Plugin):
         ]
 
     def find_mac(self, mac: str) -> TraceResult:
-        mac = mac.replace(":", "").replace("-", "").replace(".", "").lower()
-        url = f"{self.base_uri}{LNMS_PORTS_MAC_SEARCH}{mac}"
+        request_mac = MACFormatStyle.bare(mac)
+        url = f"{self.base_uri}{LNMS_PORTS_MAC_SEARCH}{request_mac}"
         r = requests.get(url, headers=self.auth_header, verify=self.verify)
         if r.status_code == 200:
             data = r.json()
