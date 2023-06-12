@@ -7,6 +7,41 @@ from typing import List, Optional, Union
 
 
 @dataclasses.dataclass(eq=True, order=False, frozen=True)
+class MACFormatStyle:
+    chars_before_sep: int
+    sep: str
+
+    def __post_init__(self):
+        if self.chars_before_sep == 0:
+            raise ValueError("chars_before_sep cannot be 0")
+
+    @staticmethod
+    def bare(mac: str) -> str:
+        return "".join(c for c in mac if c.lower() in "0123456789abcdef")
+
+    def to_style(self, mac: str) -> str:
+        mac = self.bare(mac)
+        return self.sep.join(
+            [mac[i : i + self.chars_before_sep] for i in range(0, len(mac), self.chars_before_sep)]
+        )
+
+    @classmethod
+    def recognize_style(cls, mac: str):
+        first_sep = next((i for i in mac if i.lower() not in "0123456789abcdef"), "")
+        chars_before_sep = mac.index(first_sep)
+        if (
+            chars_before_sep == 0
+        ):  # no separator, 0 is problematic, set to 12 (total length of MAC with no separator)
+            chars_before_sep = 12
+        return MACFormatStyle(chars_before_sep, first_sep)
+
+
+CISCO_STYLE = MACFormatStyle(4, ".")
+DASH_STYLE = MACFormatStyle(2, "-")
+COLON_STYLE = MACFormatStyle(2, ":")
+
+
+@dataclasses.dataclass(eq=True, order=False, frozen=True)
 class TraceResult:
     status: str
     mac: str
@@ -35,17 +70,6 @@ def expand_portname(portname: str) -> Optional[str]:
     return portname
 
 
-def fmac_cisco(mac: str) -> Optional[str]:
-    """
-    Given a string representation of a MAC address in a common format, return it in Cisco format.
-    """
-    # Fast-like remove ":", ".", and "-" in one go
-    mac = mac.translate({58: None, 45: None, 46: None}).lower()
-    if len(mac) != 12:
-        return None
-    return f"{mac[:4]}.{mac[4:8]}.{mac[8:12]}"
-
-
 def shrink_portname(portname: str) -> Optional[str]:
     """
     Abbreviate a port prefix.
@@ -68,12 +92,12 @@ def resolve_macs(mac_file_or_single: Union[Path, str]) -> Optional[List[str]]:
     try:
         with open(mac_file_or_single) as mac_f:
             for mac in mac_f:
-                formatted_mac = fmac_cisco(mac.strip())
+                formatted_mac = CISCO_STYLE.to_style(mac.strip())
                 if not formatted_mac:
                     continue
                 res.append(formatted_mac)
     except FileNotFoundError:
-        formatted_mac = fmac_cisco(str(mac_file_or_single).strip())
+        formatted_mac = CISCO_STYLE.to_style(str(mac_file_or_single).strip())
         if formatted_mac is None:
             return None
     return res
