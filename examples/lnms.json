@@ -1,0 +1,6 @@
+{
+    "api-key":"944219ddba623b64fe7b93c701569015",
+    "host": "librenms.example.com",
+    "protocol": "https",
+    "plugin": "LibreNMS"
+}
