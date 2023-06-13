@@ -57,15 +57,15 @@ class PluginDecription:
         return True
 
 
-from .manually_trace import ManuallyTracePlugin
+from .cisco_ssh import CiscoSSHPlugin
 from .librenms import LibreNMSPlugin
 
 PLUGINS = [
     PluginDecription(
-        name="ManualTracer",
-        description="An SSH based Screen Scraping tracer",
+        name="CiscoSSH",
+        description="An SSH based screen scraping tracer",
         dependencies=["netmiko"],
-        cls=ManuallyTracePlugin,
+        cls=CiscoSSHPlugin,
     ),
     PluginDecription(
         name="LibreNMS",

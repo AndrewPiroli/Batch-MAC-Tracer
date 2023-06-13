@@ -186,7 +186,7 @@ def start_mac_trace(
     return results
 
 
-class ManuallyTracePlugin(Plugin):
+class CiscoSSHPlugin(Plugin):
     def start(self, args: PluginArgs) -> List[TraceResult]:
         macs = [_MACHelper.from_mac(m) for m in resolve_macs(args.details["macs"])]  # type: ignore
         if macs is None:
