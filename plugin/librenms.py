@@ -3,6 +3,7 @@ try:
 except ImportError:
     pass
 from typing import List
+from functools import cache
 from . import Plugin, PluginArgs, PluginArgDescription
 from core import *
 
@@ -103,6 +104,7 @@ class LibreNMSPlugin(Plugin):
         else:
             return TraceResult("err-unknown", mac, "Unknown", "Unknown")
 
+    @cache
     def get_hostname_from_device_id(self, device_id: str) -> Optional[str]:
         url = f"{self.base_uri}{LNMS_DEVICES}{device_id}"
         r = requests.get(url, headers=self.auth_header, verify=self.verify)
