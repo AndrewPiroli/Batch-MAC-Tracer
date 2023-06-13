@@ -5,6 +5,7 @@ try:
 except ImportError:
     pass
 from typing import Callable, Dict, List, Optional
+from enum import Enum, auto
 
 from . import Plugin, PluginArgs, PluginArgDescription
 from core import *
@@ -14,6 +15,39 @@ from core.mactable import MACTableEntry, parse_full_mac_addr_table
 
 etherchannel_cache_current_device_id: str = ""
 etherchannel_parse_cache: Dict[str, List[EtherChannelEntry]] = {}
+
+
+class Status(Enum):
+    ERROR = auto()
+    RECURSE = auto()
+    EDGE = auto()
+
+
+@dataclasses.dataclass(eq=True, order=False, frozen=True)
+class _MACHelper:
+    mac: str
+    original_style: MACFormatStyle
+
+    @classmethod
+    def from_mac(cls, mac: str):
+        return cls(mac=CISCO_STYLE.to_style(mac), original_style=MACFormatStyle.recognize_style(mac))
+
+    def __repr__(self) -> str:
+        return self.mac.lower()
+
+    def __str__(self) -> str:
+        return self.original_style.to_style(self.mac).__str__()
+
+    def mac_eq(self, other: "_MACHelper") -> bool:
+        return self.mac.lower() == other.mac.lower()
+
+
+@dataclasses.dataclass(eq=True, order=False, frozen=True)
+class TraceProgress:
+    status: Status
+    mac: _MACHelper
+    iface: str
+    device: str
 
 
 def handle_portchan(device_id: str, etherchannel_summary: str, chan_id: str) -> Optional[str]:
@@ -52,7 +86,7 @@ def handle_portchan(device_id: str, etherchannel_summary: str, chan_id: str) -> 
     return None
 
 
-def trace_macs(connection_details: Dict[str, str], mac_list: List[str]) -> List[List[str]]:
+def trace_macs(connection_details: Dict[str, str], mac_list: List[_MACHelper]) -> List[TraceProgress]:
     result = []
     with ConnectHandler(**connection_details) as conn:
         switch_hostname = str(conn.find_prompt()[:-1])
@@ -64,17 +98,20 @@ def trace_macs(connection_details: Dict[str, str], mac_list: List[str]) -> List[
     parsed_cdp_table = parse_full_cdp_table(full_cdp_table)
     for mac in mac_list:
         if not len(parsed_mac_table):
-            result.append(["err", mac, "Failed to parse mac table", switch_hostname])
+            result.append(TraceProgress(Status.ERROR, mac, "Failed to parse mac table", switch_hostname))
             break
         found = False
         for mac_entry in parsed_mac_table:
             if not isinstance(mac_entry, MACTableEntry):
                 continue
-            if mac_entry.mac_address == mac:
+            current_mac_addr = _MACHelper.from_mac(mac_entry.mac_address)
+            if current_mac_addr.mac_eq(mac):
                 found = mac_entry
                 break
         if not found:
-            result.append(["err", mac, "MAC not found in mac address table", switch_hostname])
+            result.append(
+                TraceProgress(Status.ERROR, mac, "MAC not found in mac address table", switch_hostname)
+            )
             continue
         iface = expand_portname(found.port.strip())
         if not iface:
@@ -89,26 +126,26 @@ def trace_macs(connection_details: Dict[str, str], mac_list: List[str]) -> List[
                 our_cdp = cdp_entry
                 break
         else:
-            result.append(["edge", mac, iface, switch_hostname])
+            result.append(TraceProgress(Status.EDGE, mac, iface, switch_hostname))
             continue
         if CDPCapabilities.SWITCH in our_cdp.capabilities:
-            result.append(["recurse", mac, iface, cdp_entry.mgmt_addresses[0]])
+            result.append(TraceProgress(Status.RECURSE, mac, iface, cdp_entry.mgmt_addresses[0]))
         else:
-            result.append(["edge", mac, iface, switch_hostname])
+            result.append(TraceProgress(Status.EDGE, mac, iface, switch_hostname))
     return result
 
 
 def start_mac_trace(
     connection_details: Dict[str, str],
-    macs: List[str],
+    macs: List[_MACHelper],
     progress_callback: Optional[Callable[[TraceResult], None]],
 ) -> List[TraceResult]:
     if not callable(progress_callback):
         # No callback, assign a lambda that will swallow anything.
         progress_callback = lambda *args: None
     current_node = str(connection_details["host"])
-    initial_node_to_mac: Dict[str, List[str]] = {connection_details["host"]: macs}
-    next_node_to_mac: Dict[str, List[str]] = {}
+    initial_node_to_mac: Dict[str, List[_MACHelper]] = {connection_details["host"]: macs}
+    next_node_to_mac: Dict[str, List[_MACHelper]] = {}
     results = list()
     while len(initial_node_to_mac) != 0:
         for current_node, mac_list in initial_node_to_mac.items():
@@ -116,14 +153,18 @@ def start_mac_trace(
             interface = None
             next_connection_deetails = connection_details
             next_connection_deetails.update({"host": current_node})
-            for status, mac, interface, current_node in trace_macs(next_connection_deetails, mac_list):
-                if status == "edge":
+            for tmr in trace_macs(next_connection_deetails, mac_list):
+                status = tmr.status
+                mac = tmr.mac
+                interface = tmr.iface
+                current_node = tmr.device
+                if status == Status.EDGE:
                     result_interface = str(shrink_portname(interface))
-                    res = TraceResult("ok", mac, current_node, result_interface)
+                    res = TraceResult("ok", str(mac), current_node, result_interface)
                     if callable(progress_callback):
                         progress_callback(res)
                     results.append(res)
-                elif status == "recurse":
+                elif status == Status.RECURSE:
                     if current_node in next_node_to_mac:
                         next_node_to_mac[current_node].append(mac)
                     else:
@@ -134,9 +175,9 @@ def start_mac_trace(
                                 ]
                             }
                         )
-                else:
+                else:  # status == Status.ERROR
                     result_interface = str(shrink_portname(interface))
-                    res = TraceResult("err-unknown", mac, current_node, result_interface)
+                    res = TraceResult("err-unknown", str(mac), current_node, result_interface)
                     if callable(progress_callback):
                         progress_callback(res)
                     results.append(res)
@@ -147,7 +188,7 @@ def start_mac_trace(
 
 class ManuallyTracePlugin(Plugin):
     def start(self, args: PluginArgs) -> List[TraceResult]:
-        macs = resolve_macs(args.details["macs"])
+        macs = [_MACHelper.from_mac(m) for m in resolve_macs(args.details["macs"])]  # type: ignore
         if macs is None:
             print("Failed to resolve MACs")
             return []

@@ -91,6 +91,7 @@ def resolve_macs(mac_file_or_single: Union[Path, str]) -> Optional[List[str]]:
     def style(mac: str) -> str:
         detected_style = MACFormatStyle.recognize_style(mac)
         return detected_style.to_style(MACFormatStyle.bare(mac))
+
     res = []
     try:
         with open(mac_file_or_single) as mac_f:
