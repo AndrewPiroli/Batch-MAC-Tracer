@@ -190,7 +190,7 @@ class CiscoSSHPlugin(Plugin):
     def start(self, args: PluginArgs) -> List[TraceResult]:
         macs = [_MACHelper.from_mac(m) for m in resolve_macs(args.details["macs"])]  # type: ignore
         if macs is None:
-            print("Failed to resolve MACs")
+            eprint("Failed to resolve MACs")
             return []
         args.details["netmiko"].update(
             {

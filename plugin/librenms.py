@@ -17,16 +17,16 @@ class LibreNMSPlugin(Plugin):
         self.host = args.details["host"]
         self.protocol = args.details["protocol"]
         if self.protocol not in ["http", "https"]:
-            print("Invalid protocol [http, https]")
+            eprint("Invalid protocol [http, https]")
             return []
         self.macs = resolve_macs(args.details["macs"])
         if self.macs is None:
-            print("Failed to resolve MACs")
+            eprint("Failed to resolve MACs")
             return []
         self.rps = args.details["rps"] if "rps" in args.details else 10
         port = args.details["port"] if "port" in args.details else 443
         if not isinstance(port, int) or port < 1 or port > 65535:
-            print("Invalid port [1-65535]")
+            eprint("Invalid port [1-65535]")
             return []
         self.base_uri = f"{self.protocol}://{self.host}:{port}"
         if self.protocol == "https":

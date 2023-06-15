@@ -4,6 +4,10 @@
 import dataclasses
 from pathlib import Path
 from typing import List, Optional, Union
+from functools import partial
+from sys import stderr
+
+eprint = partial(print, file=stderr)
 
 
 @dataclasses.dataclass(eq=True, order=False, frozen=True)

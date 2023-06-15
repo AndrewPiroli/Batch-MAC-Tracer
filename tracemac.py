@@ -6,12 +6,13 @@ import time
 import json
 from getpass import getpass
 from plugin import PLUGINS, PluginArgs
+from core import eprint
 
 if __name__ == "__main__":
     available_plugins = [plugin for plugin in PLUGINS if plugin.can_load()]
     plugin_names = "{}".format(" ".join(p.name for p in available_plugins))
     if len(available_plugins) == 0:
-        print("No plugins available, please install the dependencies for at least one plugin.")
+        eprint("No plugins available, please install the dependencies for at least one plugin.")
         exit(1)
     parser = argparse.ArgumentParser(description="Bulk trace MAC addresses")
     parser.add_argument("CONFIG", help="JSON Config file to load", type=argparse.FileType("r"))
@@ -24,32 +25,32 @@ if __name__ == "__main__":
             p for p in available_plugins if p.name.strip().lower() == args.plugin.strip().lower()
         )
         if selected_plugin is None:
-            print(f"No plugin found with name: {args.plugin}\nOptions: {plugin_names}")
+            eprint(f"No plugin found with name: {args.plugin}\nOptions: {plugin_names}")
             exit(1)
     else:
         if "plugin" not in args_have:
-            print(f"No plugin specified on command line or config file, options: {plugin_names}")
+            eprint(f"No plugin specified on command line or config file, options: {plugin_names}")
             exit(1)
         requested_plugin = loaded_config["plugin"].strip().lower()
         selected_plugin = next(p for p in available_plugins if p.name.strip().lower() == requested_plugin)
         if selected_plugin is None:
-            print(f"No plugin found with name: {requested_plugin}\nOptions: {plugin_names}")
+            eprint(f"No plugin found with name: {requested_plugin}\nOptions: {plugin_names}")
             exit(1)
-    print("Loaded plugin: {}".format(selected_plugin.name))
+    eprint("Loaded plugin: {}".format(selected_plugin.name))
     plugin = selected_plugin.cls()
     args_need = plugin.args()
     while True:
         missing = [m for m in args_need if m.name not in args_have and not m.optional]
         if len(missing) == 0:
             break
-        print("Missing arguments: {}".format(", ".join([m.name for m in missing])))
+        eprint("Missing arguments: {}".format(", ".join([m.name for m in missing])))
         for arg in missing:
             if arg.can_fill_interactively == False:
-                print(
+                eprint(
                     f"Argument {arg.name}: {arg.description} cannot be filled interactively and is required"
                 )
                 exit(1)
-            print(f"Enter value for {arg.name} ({arg.description}): ", end="", flush=True)
+            eprint(f"Enter value for {arg.name} ({arg.description}): ", end="", flush=True)
             if arg.secret:
                 loaded_config[arg.name] = getpass("")
             else:
@@ -61,6 +62,6 @@ if __name__ == "__main__":
     try:
         plugin.start(p_args)
     except Exception as e:
-        print(f"Error: {e}")
+        eprint(f"Error: {e}")
     finally:
-        print(f"Elapsed: {time.perf_counter() - start_time}")
+        eprint(f"Elapsed: {time.perf_counter() - start_time}")
