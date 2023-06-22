@@ -14,6 +14,8 @@ LNMS_DEVICES = "/api/v0/devices/"
 class LibreNMSPlugin(Plugin):
     def start(self, args: PluginArgs) -> List[TraceResult]:
         self.auth_header = {"X-Auth-Token": args.details["api-key"]}
+        self.session = requests.Session()
+        self.session.headers.update(self.auth_header)
         self.host = args.details["host"]
         self.protocol = args.details["protocol"]
         if self.protocol not in ["http", "https"]:
@@ -79,7 +81,7 @@ class LibreNMSPlugin(Plugin):
     def find_mac(self, mac: str) -> TraceResult:
         request_mac = MACFormatStyle.bare(mac)
         url = f"{self.base_uri}{LNMS_PORTS_MAC_SEARCH}{request_mac}"
-        r = requests.get(url, headers=self.auth_header, verify=self.verify)
+        r = self.session.get(url, verify=self.verify)
         if r.status_code == 200:
             data = r.json()
             if len(data) < 1:
@@ -107,7 +109,7 @@ class LibreNMSPlugin(Plugin):
     @cache
     def get_hostname_from_device_id(self, device_id: str) -> Optional[str]:
         url = f"{self.base_uri}{LNMS_DEVICES}{device_id}"
-        r = requests.get(url, headers=self.auth_header, verify=self.verify)
+        r = self.session.get(url, verify=self.verify)
         if r.status_code == 200:
             data = r.json()
             if len(data) < 1 or len(data["devices"]) < 1:
