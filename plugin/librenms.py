@@ -102,7 +102,7 @@ class LibreNMSPlugin(Plugin):
             hostname = self.get_hostname_from_device_id(candidate["device_id"])
             if hostname is None:
                 return TraceResult("err-unknown", mac, "Unknown", "Unknown")
-            return TraceResult("ok", mac, hostname, candidate["ifName"])
+            return TraceResult("ok", mac, hostname, str(candidate["ifName"]))
         else:
             return TraceResult("err-unknown", mac, "Unknown", "Unknown")
 

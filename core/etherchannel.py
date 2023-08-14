@@ -4,7 +4,7 @@
 import re
 import dataclasses
 from enum import Flag, auto
-from typing import List, Tuple
+from typing import List
 
 __etherchannel_start__ = re.compile(r"--+--")  # This looks dumb, but it gets us in the ballpark
 __etherchannel_strip_parens__ = re.compile(r"(.*?)(\(.*?\))", re.DOTALL)
@@ -58,13 +58,13 @@ class EtherChannelEntry:
     group: int
     portchannel: str
     protocol: str
-    ports: Tuple[EtherChannelPort]
+    ports: List[EtherChannelPort]
 
     def __post_init__(self):
         if not isinstance(self.group, int):
             raise TypeError("EtherChannelEntry.group is not an integer type")
-        if not isinstance(self.ports, tuple):
-            raise TypeError("EtherChannelEntry.ports is not a tuple type")
+        if not isinstance(self.ports, list):
+            raise TypeError("EtherChannelEntry.ports is not a list type")
         for idx, port in enumerate(self.ports):
             if not isinstance(port, EtherChannelPort):
                 raise TypeError(f"EtherChannelEntry.ports[{idx}] is not a EtherChannelPort type")
@@ -104,5 +104,5 @@ def parse_etherchannel_summary(etherchannel_summary: str) -> List[EtherChannelEn
                         pass
                 parsed_states ^= EtherChannelStates.NONE
                 ifaces.append(EtherChannelPort(port_name, parsed_states))
-        ret.append(EtherChannelEntry(group, port_channel, protocol, tuple(ifaces)))
+        ret.append(EtherChannelEntry(group, port_channel, protocol, ifaces))
     return ret

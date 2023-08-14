@@ -9,7 +9,12 @@ from enum import Enum, auto
 
 from . import Plugin, PluginArgs, PluginArgDescription
 from core import *
-from core.etherchannel import EtherChannelEntry, EtherChannelStates, parse_etherchannel_summary
+from core.etherchannel import (
+    EtherChannelEntry,
+    EtherChannelStates,
+    EtherChannelPort,
+    parse_etherchannel_summary,
+)
 from core.cdp import CDPCapabilities, parse_full_cdp_table
 from core.mactable import MACTableEntry, parse_full_mac_addr_table
 
@@ -73,7 +78,7 @@ def handle_portchan(device_id: str, etherchannel_summary: str, chan_id: str) -> 
         for chan in parsed_etherchannel:
             if chan.group == int(chan_id):
                 if len(chan.ports):
-                    found = False
+                    found: Optional[EtherChannelPort] = None
                     for port in chan.ports:
                         if EtherChannelStates.BUNDLED in port.state:
                             found = port
@@ -88,7 +93,7 @@ def handle_portchan(device_id: str, etherchannel_summary: str, chan_id: str) -> 
 
 def trace_macs(connection_details: Dict[str, str], mac_list: List[_MACHelper]) -> List[TraceProgress]:
     result = []
-    with ConnectHandler(**connection_details) as conn:
+    with ConnectHandler(**connection_details) as conn:  # pyright: ignore reportUnboundVariable
         switch_hostname = str(conn.find_prompt()[:-1])
         mac_table = str(conn.send_command("sh mac address-table"))
         full_cdp_table = str(conn.send_command("show cdp neighbor detail"))
@@ -100,7 +105,7 @@ def trace_macs(connection_details: Dict[str, str], mac_list: List[_MACHelper]) -
         if not len(parsed_mac_table):
             result.append(TraceProgress(Status.ERROR, mac, "Failed to parse mac table", switch_hostname))
             break
-        found = False
+        found: Optional[MACTableEntry] = None
         for mac_entry in parsed_mac_table:
             if not isinstance(mac_entry, MACTableEntry):
                 continue
@@ -118,6 +123,8 @@ def trace_macs(connection_details: Dict[str, str], mac_list: List[_MACHelper]) -
             continue
         if "Port-channel" in iface:
             iface = handle_portchan(switch_hostname, full_etherchannel_summary, iface)
+            if not iface:
+                continue
         mac_to_local_iface.update({mac: iface})
     for mac, iface in mac_to_local_iface.items():
         our_cdp = None

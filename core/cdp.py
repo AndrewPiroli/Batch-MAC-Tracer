@@ -5,7 +5,7 @@ import re
 import dataclasses
 import traceback
 from enum import Flag, auto
-from typing import Tuple, List
+from typing import List
 
 __cdp_entry_delimiter__ = "-------------------------"
 __cdp_device_id__ = re.compile(r"Device ID: (.*?)\n", re.DOTALL)
@@ -66,16 +66,16 @@ class CDPTableEntry:
     duplex: str
     unidirectional_mode: str
     capabilities: CDPCapabilities
-    entry_addresses: Tuple[str]
-    mgmt_addresses: Tuple[str]
+    entry_addresses: List[str]
+    mgmt_addresses: List[str]
 
     def __post_init__(self):
         if not isinstance(self.capabilities, CDPCapabilities):
             raise TypeError("CDPTableEntry.capabilities is not a CDPCapabilities type")
-        if not isinstance(self.entry_addresses, tuple):
-            raise TypeError("CDPTableEntry.entry_addresses is not a tuple type")
-        if not isinstance(self.mgmt_addresses, tuple):
-            raise TypeError("CDPTableEntry.mgmt_addresses is not a tuple type")
+        if not isinstance(self.entry_addresses, list):
+            raise TypeError("CDPTableEntry.entry_addresses is not a list type")
+        if not isinstance(self.mgmt_addresses, list):
+            raise TypeError("CDPTableEntry.mgmt_addresses is not a list type")
         for idx, maybe_entry_addr in enumerate(self.entry_addresses):
             if not isinstance(maybe_entry_addr, str):
                 raise TypeError(f"CDPTableEntry.entry_addreses[{idx}] is not a str type")
@@ -102,9 +102,9 @@ def parse_single_cdp_entry(entry: str) -> CDPTableEntry:
     mgmt_addrs = list()
     for ip_match in __cdp_ip_addr__.finditer(entry):
         if ip_match.start() < platform_idx:
-            entry_addrs.append(ip_match.group(1))
+            entry_addrs.append(str(ip_match.group(1)))
         else:
-            mgmt_addrs.append(ip_match.group(1))
+            mgmt_addrs.append(str(ip_match.group(1)))
     capabilities = CDPCapabilities(CDPCapabilities.NONE)
     if match := __cdp_capabilities__.search(entry):
         for capability in match.group(1).split():
@@ -162,8 +162,8 @@ def parse_single_cdp_entry(entry: str) -> CDPTableEntry:
         duplex,
         unidirectional_mode,
         capabilities,
-        tuple(entry_addrs),
-        tuple(mgmt_addrs),
+        entry_addrs,
+        mgmt_addrs,
     )
 
 
@@ -171,7 +171,7 @@ def parse_full_cdp_table(cdp_table: str) -> List[CDPTableEntry]:
     all_entries = list()
     cdp_table_lines = cdp_table.splitlines()
     table_maxlen = len(cdp_table_lines) - 1  # Zero index
-    current_entry = list()
+    current_entry: List[str] = list()
     in_entry = False
     for idx, line in enumerate(cdp_table_lines):
         if not in_entry:
