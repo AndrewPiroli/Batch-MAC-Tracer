@@ -108,4 +108,5 @@ def resolve_macs(mac_file_or_single: Union[Path, str]) -> Optional[List[str]]:
         formatted_mac = style(str(mac_file_or_single).strip())
         if formatted_mac is None:
             return None
+        res.append(formatted_mac)
     return res
