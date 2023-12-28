@@ -62,6 +62,9 @@ def expand_portname(portname: str) -> Optional[str]:
     Fa -> FastEthernet
     Gi -> GigabitEthernet
     Te -> TenGigabitEthernet
+    Twe-> TwentyFiveGigE
+    Fo -> FortyGigabitEthernet
+    Hu -> HundredGigE
     """
     if not portname:
         return None
@@ -71,6 +74,12 @@ def expand_portname(portname: str) -> Optional[str]:
         return f"GigabitEthernet{portname[2:]}"
     if portname.startswith("Te") and not portname.startswith("TenGigabitEthernet"):
         return f"TenGigabitEthernet{portname[2:]}"
+    if portname.startswith("Twe") and not portname.startswith("TwentyFiveGigE"):
+        return f"TwentyFiveGigE{portname[2:]}"
+    if portname.startswith("Fo") and not portname.startswith("FortyGigabitEthernet"):
+        return f"FortyGigabitEthernet{portname[2:]}"
+    if portname.startswith("Hu") and not portname.startswith("HundredGigE"):
+        return f"HundredGigE{portname[2:]}"
     return portname
 
 
@@ -80,11 +89,17 @@ def shrink_portname(portname: str) -> Optional[str]:
     FastEthernet -> Fa
     GigabitEthernet -> Gi
     TenGigabitEthernet -> Te
+    TwentyFiveGigE -> Twe
+    FortyGigabitEtheren -> Fo
+    HundredGigE -> Hu
     """
     if not portname:
         return None
     return (
-        portname.replace("TenGigabit", "Te", 1)
+        portname.replace("HundredGigE", "Hu", 1)
+        .replace("FortyGigabit", "Fo", 1)
+        .replace("TwentyFiveGigE", "Twe", 1)
+        .replace("TenGigabit", "Te", 1)
         .replace("Ethernet", "", 1)
         .replace("Fast", "Fa", 1)
         .replace("Gigabit", "Gi", 1)
